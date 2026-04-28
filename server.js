@@ -1,10 +1,24 @@
 // server.js — Regatta Screen API server
 'use strict';
 
-const express = require('express');
-const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+
+// ── Load .env vóór alle andere imports zodat JWT_SECRET beschikbaar is ───────
+const envPath = path.join(__dirname, '.env');
+if (fs.existsSync(envPath)) {
+  fs.readFileSync(envPath, 'utf8')
+    .split('\n')
+    .forEach(line => {
+      const m = line.match(/^([^#=]+)=(.*)$/);
+      if (m && !(m[1].trim() in process.env)) {
+        process.env[m[1].trim()] = m[2].trim();
+      }
+    });
+}
+
+const express = require('express');
+const cors = require('cors');
 
 const { initDb } = require('./db');
 const createAuthRouter = require('./routes/auth');
@@ -55,8 +69,8 @@ app.get('*', (req, res) => {
 });
 
 // ── Start server ───────────────────────────────────────────────────────────
-const HOST = '127.0.0.1';
-const PORT = 3000;
+const HOST = process.env.HOST || '127.0.0.1';
+const PORT = parseInt(process.env.PORT || '3000', 10);
 
 app.listen(PORT, HOST, () => {
   console.log(`Regatta Server running at http://${HOST}:${PORT}`);
