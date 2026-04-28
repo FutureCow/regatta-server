@@ -51,6 +51,24 @@ function createAuthRouter(db) {
     }
   });
 
+  // ── GET /api/auth/me ──────────────────────────────────────────────────────
+  router.get('/me', (req, res) => {
+    const authHeader = req.headers['authorization'];
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Niet ingelogd.' });
+    }
+    const { SECRET } = require('../middleware/auth');
+    const jwt = require('jsonwebtoken');
+    try {
+      const payload = jwt.verify(authHeader.slice(7), SECRET);
+      const user = db.prepare('SELECT id, email, is_admin FROM users WHERE id = ?').get(payload.sub);
+      if (!user) return res.status(404).json({ error: 'Gebruiker niet gevonden.' });
+      return res.json({ id: user.id, email: user.email, isAdmin: !!user.is_admin });
+    } catch {
+      return res.status(401).json({ error: 'Token ongeldig.' });
+    }
+  });
+
   // ── POST /api/auth/login ──────────────────────────────────────────────────
   router.post('/login', async (req, res) => {
     const { email, password } = req.body || {};
