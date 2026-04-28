@@ -52,10 +52,20 @@ function initDb(dbPath) {
       created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS classes (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      race_id    INTEGER NOT NULL REFERENCES races(id) ON DELETE CASCADE,
+      name       TEXT    NOT NULL,
+      code       TEXT    NOT NULL UNIQUE,
+      created_by INTEGER NOT NULL REFERENCES users(id),
+      created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS race_tracks (
       race_id   INTEGER NOT NULL REFERENCES races(id) ON DELETE CASCADE,
       track_id  INTEGER NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
       user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      class_id  INTEGER REFERENCES classes(id) ON DELETE SET NULL,
       linked_at TEXT    NOT NULL DEFAULT (datetime('now')),
       PRIMARY KEY (race_id, track_id)
     );

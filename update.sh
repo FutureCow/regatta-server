@@ -92,6 +92,25 @@ if (!raceCols.includes('description')) {
   console.log('  + races.description toegevoegd');
 }
 
+// Classes tabel
+db.exec(`
+  CREATE TABLE IF NOT EXISTS classes (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    race_id    INTEGER NOT NULL REFERENCES races(id) ON DELETE CASCADE,
+    name       TEXT    NOT NULL,
+    code       TEXT    NOT NULL UNIQUE,
+    created_by INTEGER NOT NULL REFERENCES users(id),
+    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+
+// class_id kolom op race_tracks
+const rtCols = db.prepare("PRAGMA table_info(race_tracks)").all().map(r => r.name);
+if (!rtCols.includes('class_id')) {
+  db.exec("ALTER TABLE race_tracks ADD COLUMN class_id INTEGER REFERENCES classes(id) ON DELETE SET NULL");
+  console.log('  + race_tracks.class_id toegevoegd');
+}
+
 db.exec("PRAGMA foreign_keys = ON");
 console.log('  Migraties voltooid.');
 JS

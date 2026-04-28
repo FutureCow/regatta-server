@@ -341,13 +341,64 @@ async function loadSeriesRaces(seriesId) {
 }
 
 function renderRaceRow(r, container) {
-  const el = document.createElement('div');
-  el.className = 'race-row';
-  el.innerHTML = `
-    <div class="race-row-date">${r.race_date ? formatRaceDate(r.race_date) : '—'}</div>
-    <div class="race-row-name">${escapeHtml(r.name)}${r.description ? ` <span class="race-row-desc">· ${escapeHtml(r.description)}</span>` : ''}</div>
-    <div class="race-row-count">${r.participant_count} deelnemer(s)</div>`;
-  container.appendChild(el);
+  const wrap = document.createElement('div');
+  wrap.className = 'race-row-expandable';
+  wrap.innerHTML = `
+    <div class="race-row">
+      <div class="race-row-date">${r.race_date ? formatRaceDate(r.race_date) : '—'}</div>
+      <div class="race-row-name">${escapeHtml(r.name)}${r.description ? ` <span class="race-row-desc">· ${escapeHtml(r.description)}</span>` : ''}</div>
+      <div class="race-row-count">${r.participant_count} deelnemer(s)</div>
+      <button class="btn btn-secondary btn-sm toggle-classes-view-btn" data-race="${r.id}">Klassen</button>
+    </div>
+    <div class="classes-view-panel" id="classes-view-${r.id}" style="display:none;"></div>`;
+  wrap.querySelector('.toggle-classes-view-btn').addEventListener('click', () => toggleClassesView(r.id));
+  container.appendChild(wrap);
+}
+
+async function toggleClassesView(raceId) {
+  const panel = document.getElementById(`classes-view-${raceId}`);
+  if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  panel.innerHTML = '<span style="color:var(--text-muted);font-size:.8rem;">Laden…</span>';
+
+  const res = await apiFetch(`/races/${raceId}/classes`);
+  const classes = res.ok ? await res.json() : [];
+  panel.innerHTML = '';
+
+  if (!classes.length) {
+    panel.innerHTML = '<p style="color:var(--text-muted);font-size:.8rem;">Nog geen klassen.</p>'; return;
+  }
+
+  for (const c of classes) {
+    const el = document.createElement('div');
+    el.className = 'class-row';
+    el.innerHTML = `
+      <div class="class-info">
+        <span class="class-name">${escapeHtml(c.name)}</span>
+        <span class="class-count">${c.participant_count} deelnemer(s)</span>
+      </div>`;
+    panel.appendChild(el);
+    // Laad deelnemers per klasse
+    if (c.participant_count > 0) {
+      const tracksRes = await apiFetch(`/races/${raceId}/classes/${c.id}/tracks`);
+      if (tracksRes.ok) {
+        const tracks = await tracksRes.json();
+        const table = document.createElement('div');
+        table.className = 'class-results';
+        tracks.forEach((t, i) => {
+          const row = document.createElement('div');
+          row.className = 'class-result-row';
+          row.innerHTML = `
+            <span class="result-pos">${i+1}</span>
+            <span class="result-email">${escapeHtml(t.user_email)}</span>
+            <span class="result-speed">${formatSpeed(t.avg_speed_knots)}</span>
+            <span class="result-dist">${formatDistance(t.distance_meters)}</span>`;
+          table.appendChild(row);
+        });
+        panel.appendChild(table);
+      }
+    }
+  }
 }
 
 // ── Tab: Beheer ───────────────────────────────────────────────────────────
@@ -428,13 +479,74 @@ async function loadAdminSeriesRaces(seriesId) {
   }
   for (const r of data.races) {
     const row = document.createElement('div');
-    row.className = 'race-row';
+    row.className = 'race-row-expandable';
     row.innerHTML = `
-      <div class="race-row-date">${r.race_date ? formatRaceDate(r.race_date) : '—'}</div>
-      <div class="race-row-name">${escapeHtml(r.name)}</div>
-      <div class="race-row-count">${r.participant_count} deelnemer(s)</div>`;
+      <div class="race-row">
+        <div class="race-row-date">${r.race_date ? formatRaceDate(r.race_date) : '—'}</div>
+        <div class="race-row-name">${escapeHtml(r.name)}</div>
+        <div class="race-row-count">${r.participant_count} deelnemer(s)</div>
+        <button class="btn btn-secondary btn-sm toggle-classes-btn" data-race="${r.id}">Klassen</button>
+      </div>
+      <div class="classes-panel" id="classes-panel-${r.id}" style="display:none;"></div>`;
+    row.querySelector('.toggle-classes-btn').addEventListener('click', () => toggleClasses(r.id));
     container.appendChild(row);
   }
+}
+
+async function toggleClasses(raceId) {
+  const panel = document.getElementById(`classes-panel-${raceId}`);
+  if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  panel.innerHTML = '<span style="color:var(--text-muted);font-size:.8rem;">Laden…</span>';
+
+  const res = await apiFetch(`/races/${raceId}/classes`);
+  const classes = res.ok ? await res.json() : [];
+  panel.innerHTML = '';
+
+  // Klassen tonen
+  if (classes.length) {
+    for (const c of classes) {
+      const el = document.createElement('div');
+      el.className = 'class-row';
+      el.innerHTML = `
+        <div class="class-info">
+          <span class="class-name">${escapeHtml(c.name)}</span>
+          <span class="class-code" title="Klik om te kopiëren">${c.code}</span>
+          <span class="class-count">${c.participant_count} deelnemer(s)</span>
+        </div>
+        <button class="race-card-delete btn-xs" title="Klasse verwijderen" data-id="${c.id}">✕</button>`;
+      el.querySelector('.class-code').addEventListener('click', () => {
+        navigator.clipboard.writeText(c.code);
+        showToast(`Code ${c.code} gekopieerd`, 'success');
+      });
+      el.querySelector('.race-card-delete').addEventListener('click', async () => {
+        if (!confirm(`Klasse "${c.name}" verwijderen?`)) return;
+        await apiFetch(`/classes/${c.id}`, { method: 'DELETE' });
+        toggleClasses(raceId); toggleClasses(raceId); // refresh
+      });
+      panel.appendChild(el);
+    }
+  } else {
+    panel.innerHTML = '<p style="color:var(--text-muted);font-size:.8rem;margin-bottom:8px;">Nog geen klassen.</p>';
+  }
+
+  // Klasse toevoegen
+  const addRow = document.createElement('div');
+  addRow.className = 'add-race-row';
+  addRow.innerHTML = `
+    <input type="text" class="add-class-name" placeholder="Naam klasse, bijv. Optimist" />
+    <button class="btn btn-secondary btn-sm add-class-btn">+ Klasse</button>`;
+  addRow.querySelector('.add-class-btn').addEventListener('click', async () => {
+    const name = addRow.querySelector('.add-class-name').value.trim();
+    if (!name) return;
+    const r = await apiFetch(`/races/${raceId}/classes`, { method: 'POST', body: JSON.stringify({ name }) });
+    if (!r.ok) { showToast((await r.json()).error, 'error'); return; }
+    const { code } = await r.json();
+    showToast(`Klasse aangemaakt — code: ${code}`, 'success');
+    panel.style.display = 'none';
+    toggleClasses(raceId);
+  });
+  panel.appendChild(addRow);
 }
 
 async function addRaceToSeries(seriesId, cardEl) {

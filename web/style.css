@@ -775,6 +775,97 @@ select#race-series:focus { border-color: var(--accent2); }
   .race-row-date { grid-column: 1 / -1; }
 }
 
+/* ── Klassen ─────────────────────────────────────────────────────────────── */
+.race-row-expandable { display: flex; flex-direction: column; }
+
+.classes-panel, .classes-view-panel {
+  margin: 4px 0 8px 0;
+  padding: 12px 14px;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.class-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--bg2);
+  border-radius: 8px;
+}
+
+.class-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.class-name {
+  font-weight: 600;
+  font-size: .9rem;
+  color: var(--text);
+}
+
+.class-code {
+  font-family: monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent2);
+  background: rgba(59,130,246,.12);
+  padding: 3px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  letter-spacing: 2px;
+  transition: background .15s;
+}
+.class-code:hover { background: rgba(59,130,246,.25); }
+
+.class-count {
+  font-size: .75rem;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+/* Resultaten per klasse */
+.class-results {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+.class-result-row {
+  display: grid;
+  grid-template-columns: 24px 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  font-size: .82rem;
+  padding: 5px 8px;
+  border-radius: 5px;
+  background: var(--bg3);
+}
+
+.result-pos   { font-weight: 700; color: var(--accent2); text-align: center; }
+.result-email { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result-speed { color: var(--accent); font-weight: 600; white-space: nowrap; }
+.result-dist  { color: var(--text-muted); white-space: nowrap; }
+
+.btn-xs {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: .8rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.btn-xs:hover { color: var(--danger); background: rgba(239,68,68,.1); }
+
 /* ── Leaflet overrides ───────────────────────────────────────────────────── */
 .leaflet-container { font-family: inherit; }
 .leaflet-bar a, .leaflet-bar a:hover { background: var(--bg2); color: var(--text); border-color: var(--border); }
