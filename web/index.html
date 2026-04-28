@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Regatta Screen — Inloggen</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="login-page">
+  <div class="login-card">
+
+    <div class="login-logo">
+      <!-- Sailboat icon -->
+      <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="44" height="44" rx="10" fill="#0f172a"/>
+        <path d="M22 8 L22 34" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
+        <path d="M22 10 L10 30 L22 30 Z" fill="#3b82f6" fill-opacity=".85"/>
+        <path d="M22 14 L34 30 L22 30 Z" fill="#22c55e" fill-opacity=".85"/>
+        <path d="M8 36 L36 36" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <div class="brand">
+        <span class="brand-name">Regatta Screen</span>
+        <span class="brand-tagline">Race track &amp; analyse</span>
+      </div>
+    </div>
+
+    <form id="login-form" novalidate>
+      <div id="login-error"></div>
+
+      <div class="field">
+        <label for="email">E-mailadres</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          autocomplete="email"
+          placeholder="jouw@email.nl"
+          required
+        />
+      </div>
+
+      <div class="field">
+        <label for="password">Wachtwoord</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          autocomplete="current-password"
+          placeholder="••••••••"
+          required
+        />
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;margin-top:4px;">
+        <span id="submit-label">Inloggen</span>
+        <span id="submit-spinner" class="spinner" style="display:none;"></span>
+      </button>
+    </form>
+
+    <div class="login-toggle">
+      <span id="toggle-text">Nog geen account?</span>
+      <button type="button" id="toggle-btn">Registreren</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script>
+  const API = 'https://regatta.fhettinga.nl/api';
+
+  // ── Redirect if already logged in ────────────────────────────────────────
+  if (localStorage.getItem('regatta_token')) {
+    window.location.replace('dashboard.html');
+  }
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  let isRegisterMode = false;
+
+  const form       = document.getElementById('login-form');
+  const emailInput = document.getElementById('email');
+  const passInput  = document.getElementById('password');
+  const submitBtn  = document.getElementById('submit-btn');
+  const submitLabel   = document.getElementById('submit-label');
+  const submitSpinner = document.getElementById('submit-spinner');
+  const errorBox   = document.getElementById('login-error');
+  const toggleBtn  = document.getElementById('toggle-btn');
+  const toggleText = document.getElementById('toggle-text');
+
+  function setMode(register) {
+    isRegisterMode = register;
+    submitLabel.textContent    = register ? 'Registreren' : 'Inloggen';
+    toggleBtn.textContent      = register ? 'Inloggen' : 'Registreren';
+    toggleText.textContent     = register ? 'Al een account?' : 'Nog geen account?';
+    passInput.autocomplete     = register ? 'new-password' : 'current-password';
+    hideError();
+  }
+
+  toggleBtn.addEventListener('click', () => setMode(!isRegisterMode));
+
+  function showError(msg) {
+    errorBox.style.display = 'block';
+    errorBox.textContent = msg;
+  }
+
+  function hideError() {
+    errorBox.style.display = 'none';
+    errorBox.textContent = '';
+  }
+
+  function setLoading(loading) {
+    submitBtn.disabled = loading;
+    submitSpinner.style.display = loading ? 'inline-block' : 'none';
+  }
+
+  // ── Form submit ───────────────────────────────────────────────────────────
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    hideError();
+
+    const email    = emailInput.value.trim();
+    const password = passInput.value;
+
+    if (!email) { showError('Voer een e-mailadres in.'); return; }
+    if (!password) { showError('Voer een wachtwoord in.'); return; }
+    if (isRegisterMode && password.length < 6) {
+      showError('Wachtwoord moet minimaal 6 tekens bevatten.');
+      return;
+    }
+
+    setLoading(true);
+
+    const endpoint = isRegisterMode ? '/auth/register' : '/auth/login';
+
+    try {
+      const res = await fetch(API + endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showError(data.error || 'Er is een fout opgetreden.');
+        setLoading(false);
+        return;
+      }
+
+      // Save credentials
+      localStorage.setItem('regatta_token', data.token);
+      localStorage.setItem('regatta_email', data.email);
+
+      // Redirect to dashboard
+      window.location.replace('dashboard.html');
+
+    } catch (err) {
+      showError('Verbindingsfout — controleer je internetverbinding.');
+      setLoading(false);
+    }
+  });
+</script>
+
+</body>
+</html>

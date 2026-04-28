@@ -1,0 +1,277 @@
+// routes/tracks.js — Track management routes
+'use strict';
+
+const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+const { XMLParser } = require('fast-xml-parser');
+const { authMiddleware } = require('../middleware/auth');
+
+// ── Haversine distance (metres) between two lat/lon pairs ─────────────────
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// ── Parse GPX XML and extract track statistics ─────────────────────────────
+function parseGpx(xmlString) {
+  const parser = new XMLParser({
+    ignoreAttributes: false,
+    attributeNamePrefix: '@_',
+    parseAttributeValue: true,
+    isArray: (name) => ['trk', 'trkseg', 'trkpt'].includes(name),
+  });
+
+  const doc = parser.parse(xmlString);
+  const gpx = doc.gpx || doc.GPX;
+  if (!gpx) throw new Error('Geen geldig GPX-bestand.');
+
+  // Track name
+  const trks = gpx.trk || [];
+  const trackName = (trks[0] && trks[0].name) ? String(trks[0].name) : 'Onbekende race';
+
+  // Collect all trkpts
+  const points = [];
+  for (const trk of trks) {
+    const segs = trk.trkseg || [];
+    for (const seg of segs) {
+      const pts = seg.trkpt || [];
+      for (const pt of pts) {
+        const lat = parseFloat(pt['@_lat']);
+        const lon = parseFloat(pt['@_lon']);
+        const timeStr = pt.time;
+        if (!isNaN(lat) && !isNaN(lon)) {
+          points.push({ lat, lon, time: timeStr ? new Date(timeStr) : null });
+        }
+      }
+    }
+  }
+
+  if (points.length === 0) {
+    return {
+      name: trackName,
+      recordedAt: new Date().toISOString(),
+      durationSeconds: null,
+      distanceMeters: null,
+      maxSpeedKnots: null,
+      avgSpeedKnots: null,
+      pointCount: 0,
+    };
+  }
+
+  // Compute statistics
+  let totalDistanceM = 0;
+  let maxSpeedMs = 0;
+  const speedSamples = [];
+
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1];
+    const curr = points[i];
+    const dist = haversine(prev.lat, prev.lon, curr.lat, curr.lon);
+    totalDistanceM += dist;
+
+    if (prev.time && curr.time && curr.time > prev.time) {
+      const dtSec = (curr.time - prev.time) / 1000;
+      if (dtSec > 0 && dtSec < 60) {
+        // Ignore gaps > 60 s (GPS pause / app background)
+        const speedMs = dist / dtSec;
+        speedSamples.push(speedMs);
+        if (speedMs > maxSpeedMs) maxSpeedMs = speedMs;
+      }
+    }
+  }
+
+  const firstTime = points[0].time;
+  const lastTime = points[points.length - 1].time;
+  const durationSeconds =
+    firstTime && lastTime && lastTime > firstTime
+      ? (lastTime - firstTime) / 1000
+      : null;
+
+  const avgSpeedMs =
+    speedSamples.length > 0
+      ? speedSamples.reduce((a, b) => a + b, 0) / speedSamples.length
+      : null;
+
+  const MS_TO_KNOTS = 1.94384;
+
+  return {
+    name: trackName,
+    recordedAt: firstTime ? firstTime.toISOString() : new Date().toISOString(),
+    durationSeconds,
+    distanceMeters: totalDistanceM,
+    maxSpeedKnots: maxSpeedMs * MS_TO_KNOTS,
+    avgSpeedKnots: avgSpeedMs !== null ? avgSpeedMs * MS_TO_KNOTS : null,
+    pointCount: points.length,
+  };
+}
+
+// ── Router factory ─────────────────────────────────────────────────────────
+/**
+ * @param {import('better-sqlite3').Database} db
+ * @param {string} tracksDir  Root directory where GPX files are stored
+ */
+function createTracksRouter(db, tracksDir) {
+  const router = express.Router();
+
+  // All routes require authentication
+  router.use(authMiddleware);
+
+  // Multer: store uploads in a temp location, then move to per-user dir
+  const upload = multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        const userDir = path.join(tracksDir, String(req.userId));
+        fs.mkdirSync(userDir, { recursive: true });
+        cb(null, userDir);
+      },
+      filename: (req, file, cb) => {
+        const ts = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+        cb(null, `track_${ts}.gpx`);
+      },
+    }),
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB max
+    fileFilter: (req, file, cb) => {
+      if (
+        file.mimetype === 'application/gpx+xml' ||
+        file.mimetype === 'text/xml' ||
+        file.mimetype === 'application/xml' ||
+        file.originalname.endsWith('.gpx')
+      ) {
+        cb(null, true);
+      } else {
+        cb(new Error('Alleen GPX-bestanden zijn toegestaan.'));
+      }
+    },
+  });
+
+  // ── POST / — upload a GPX file ─────────────────────────────────────────
+  router.post('/', upload.single('gpx'), async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Geen GPX-bestand ontvangen.' });
+    }
+
+    try {
+      const xmlContent = fs.readFileSync(req.file.path, 'utf8');
+      const stats = parseGpx(xmlContent);
+
+      const windDeg =
+        req.body.wind_direction_deg !== undefined &&
+        req.body.wind_direction_deg !== ''
+          ? parseFloat(req.body.wind_direction_deg)
+          : null;
+
+      const result = db
+        .prepare(
+          `INSERT INTO tracks
+            (user_id, filename, name, recorded_at, duration_seconds,
+             distance_meters, max_speed_knots, avg_speed_knots,
+             wind_direction_deg, point_count)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .run(
+          req.userId,
+          req.file.filename,
+          stats.name,
+          stats.recordedAt,
+          stats.durationSeconds,
+          stats.distanceMeters,
+          stats.maxSpeedKnots,
+          stats.avgSpeedKnots,
+          windDeg,
+          stats.pointCount
+        );
+
+      return res.status(201).json({ id: result.lastInsertRowid });
+    } catch (err) {
+      console.error('Upload error:', err);
+      // Remove the file if parsing failed
+      try { fs.unlinkSync(req.file.path); } catch (_) {}
+      return res.status(422).json({ error: `Kon GPX niet verwerken: ${err.message}` });
+    }
+  });
+
+  // ── GET / — list user tracks ───────────────────────────────────────────
+  router.get('/', (req, res) => {
+    const tracks = db
+      .prepare(
+        `SELECT id, filename, name, recorded_at, duration_seconds, distance_meters,
+                max_speed_knots, avg_speed_knots, wind_direction_deg, point_count, created_at
+         FROM tracks
+         WHERE user_id = ?
+         ORDER BY recorded_at DESC`
+      )
+      .all(req.userId);
+
+    return res.json(tracks);
+  });
+
+  // ── GET /:id — single track metadata ──────────────────────────────────
+  router.get('/:id', (req, res) => {
+    const track = db
+      .prepare('SELECT * FROM tracks WHERE id = ? AND user_id = ?')
+      .get(req.params.id, req.userId);
+
+    if (!track) {
+      return res.status(404).json({ error: 'Track niet gevonden.' });
+    }
+    return res.json(track);
+  });
+
+  // ── GET /:id/gpx — stream GPX file ────────────────────────────────────
+  router.get('/:id/gpx', (req, res) => {
+    const track = db
+      .prepare('SELECT * FROM tracks WHERE id = ? AND user_id = ?')
+      .get(req.params.id, req.userId);
+
+    if (!track) {
+      return res.status(404).json({ error: 'Track niet gevonden.' });
+    }
+
+    const filePath = path.join(tracksDir, String(req.userId), track.filename);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'GPX-bestand niet gevonden op schijf.' });
+    }
+
+    res.setHeader('Content-Type', 'application/gpx+xml');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${track.filename}"`
+    );
+    fs.createReadStream(filePath).pipe(res);
+  });
+
+  // ── DELETE /:id — delete track ─────────────────────────────────────────
+  router.delete('/:id', (req, res) => {
+    const track = db
+      .prepare('SELECT * FROM tracks WHERE id = ? AND user_id = ?')
+      .get(req.params.id, req.userId);
+
+    if (!track) {
+      return res.status(404).json({ error: 'Track niet gevonden.' });
+    }
+
+    // Delete file from disk
+    const filePath = path.join(tracksDir, String(req.userId), track.filename);
+    try {
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } catch (err) {
+      console.warn('Could not delete GPX file:', err.message);
+    }
+
+    db.prepare('DELETE FROM tracks WHERE id = ? AND user_id = ?').run(req.params.id, req.userId);
+
+    return res.json({ ok: true });
+  });
+
+  return router;
+}
+
+module.exports = createTracksRouter;

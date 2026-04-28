@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Regatta Screen — Race</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+</head>
+<body>
+
+<div id="race-page">
+
+  <!-- Race header -->
+  <div class="race-header">
+    <button class="back-btn" id="back-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+      Terug
+    </button>
+    <div class="race-title-block">
+      <div class="race-title" id="race-title">Laden…</div>
+      <div class="race-subtitle" id="race-subtitle"></div>
+    </div>
+  </div>
+
+  <!-- Map + Sidebar -->
+  <div class="race-layout">
+    <div id="map"></div>
+
+    <aside class="race-sidebar">
+
+      <!-- Stats grid -->
+      <div>
+        <h3 style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">Statistieken</h3>
+        <div class="stats-grid">
+          <div class="stat-block accent2">
+            <div class="stat-block-label">Duur</div>
+            <div class="stat-block-value" id="stat-duration">—</div>
+            <div class="stat-block-unit">hh:mm:ss</div>
+          </div>
+          <div class="stat-block">
+            <div class="stat-block-label">Afstand</div>
+            <div class="stat-block-value" id="stat-distance">—</div>
+            <div class="stat-block-unit" id="stat-distance-unit">meter</div>
+          </div>
+          <div class="stat-block accent">
+            <div class="stat-block-label">Max snelheid</div>
+            <div class="stat-block-value" id="stat-max-speed">—</div>
+            <div class="stat-block-unit">knopen</div>
+          </div>
+          <div class="stat-block">
+            <div class="stat-block-label">Gem. snelheid</div>
+            <div class="stat-block-value" id="stat-avg-speed">—</div>
+            <div class="stat-block-unit">knopen</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wind direction -->
+      <div id="wind-section" style="display:none;">
+        <h3 style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">Windrichting</h3>
+        <div class="wind-panel">
+          <div class="wind-compass">
+            <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Compass ring -->
+              <circle cx="28" cy="28" r="26" stroke="#334155" stroke-width="2"/>
+              <!-- Cardinal marks -->
+              <text x="28" y="10" text-anchor="middle" fill="#94a3b8" font-size="7" font-family="system-ui" font-weight="600">N</text>
+              <text x="28" y="51" text-anchor="middle" fill="#94a3b8" font-size="7" font-family="system-ui" font-weight="600">Z</text>
+              <text x="7"  y="30" text-anchor="middle" fill="#94a3b8" font-size="7" font-family="system-ui" font-weight="600">W</text>
+              <text x="49" y="30" text-anchor="middle" fill="#94a3b8" font-size="7" font-family="system-ui" font-weight="600">O</text>
+              <!-- Arrow — rotated via transform-origin centre -->
+              <g id="compass-arrow" style="transform-origin:28px 28px;">
+                <line x1="28" y1="28" x2="28" y2="10" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"/>
+                <polygon points="28,6 25,13 31,13" fill="#3b82f6"/>
+                <line x1="28" y1="28" x2="28" y2="46" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/>
+              </g>
+            </svg>
+          </div>
+          <div class="wind-info">
+            <div class="label">Windrichting</div>
+            <div class="value" id="wind-deg">—</div>
+            <div class="direction" id="wind-dir">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Speed legend -->
+      <div class="speed-legend">
+        <h3>Snelheidslegenda</h3>
+        <div class="speed-legend-bar"></div>
+        <div class="speed-legend-labels">
+          <span>0 kts</span>
+          <span>4 kts</span>
+          <span>7 kts</span>
+          <span>10+ kts</span>
+        </div>
+      </div>
+
+    </aside>
+  </div>
+
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loading-overlay">
+  <span class="spinner spinner-lg"></span>
+</div>
+
+<!-- Leaflet JS -->
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WLs="
+  crossorigin="">
+</script>
+
+<script>
+  const API = 'https://regatta.fhettinga.nl/api';
+
+  // ── Auth check ────────────────────────────────────────────────────────────
+  const token = localStorage.getItem('regatta_token');
+  if (!token) { window.location.replace('index.html'); }
+
+  // ── Parse track ID from URL ────────────────────────────────────────────────
+  const params = new URLSearchParams(window.location.search);
+  const trackId = params.get('id');
+  if (!trackId) { window.location.replace('dashboard.html'); }
+
+  // ── Back button ───────────────────────────────────────────────────────────
+  document.getElementById('back-btn').addEventListener('click', () => {
+    window.location.href = 'dashboard.html';
+  });
+
+  // ── Toast ─────────────────────────────────────────────────────────────────
+  function showToast(msg, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const el = document.createElement('div');
+    el.className = `toast toast-${type}`;
+    el.textContent = msg;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 5000);
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function formatDuration(seconds) {
+    if (seconds == null) return '—';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })
+      + ' ' + d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function degToCompass(deg) {
+    if (deg == null) return null;
+    const dirs = ['N','NNO','NO','ONO','O','OZO','ZO','ZZO','Z','ZZW','ZW','WZW','W','WNW','NW','NNW'];
+    return dirs[Math.round(deg / 22.5) % 16];
+  }
+
+  // ── Haversine distance (m) ─────────────────────────────────────────────────
+  function haversine(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat/2)**2
+            + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  // ── Speed → colour (blue → green → yellow → red, 0-10 kts) ──────────────
+  function speedColor(kts) {
+    // Clamp to [0, 10]
+    const t = Math.min(Math.max(kts, 0), 10) / 10;
+    // Piecewise: 0→blue(220°), 0.4→green(140°), 0.7→yellow(55°), 1→red(0°)
+    let h, s, l;
+    if (t <= 0.4) {
+      const u = t / 0.4;
+      h = 220 + (140 - 220) * u;
+    } else if (t <= 0.7) {
+      const u = (t - 0.4) / 0.3;
+      h = 140 + (55 - 140) * u;
+    } else {
+      const u = (t - 0.7) / 0.3;
+      h = 55 + (0 - 55) * u;
+    }
+    s = 85;
+    l = t <= 0.7 ? 50 : 50 + (55 - 50) * ((t - 0.7) / 0.3);
+    return `hsl(${h.toFixed(0)},${s}%,${l.toFixed(0)}%)`;
+  }
+
+  // ── Parse GPX (client-side DOMParser) ─────────────────────────────────────
+  function parseGpx(xmlStr) {
+    const doc = new DOMParser().parseFromString(xmlStr, 'application/xml');
+    const trkpts = Array.from(doc.getElementsByTagName('trkpt'));
+
+    return trkpts.map(pt => ({
+      lat:  parseFloat(pt.getAttribute('lat')),
+      lon:  parseFloat(pt.getAttribute('lon')),
+      time: pt.getElementsByTagName('time')[0]?.textContent
+              ? new Date(pt.getElementsByTagName('time')[0].textContent)
+              : null,
+    })).filter(p => !isNaN(p.lat) && !isNaN(p.lon));
+  }
+
+  // ── Initialise Leaflet map ─────────────────────────────────────────────────
+  const map = L.map('map', {
+    zoomControl: true,
+    attributionControl: true,
+  });
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 20,
+  }).addTo(map);
+
+  // ── Draw track on map ──────────────────────────────────────────────────────
+  function drawTrack(points) {
+    if (points.length < 2) {
+      showToast('Te weinig trackpunten om te tekenen.', 'info');
+      return;
+    }
+
+    const latLngs = [];
+
+    for (let i = 1; i < points.length; i++) {
+      const prev = points[i - 1];
+      const curr = points[i];
+
+      const dist = haversine(prev.lat, prev.lon, curr.lat, curr.lon);
+      let speedKts = 0;
+
+      if (prev.time && curr.time && curr.time > prev.time) {
+        const dtSec = (curr.time - prev.time) / 1000;
+        if (dtSec > 0 && dtSec < 60) {
+          speedKts = (dist / dtSec) * 1.94384;
+        }
+      }
+
+      const color = speedColor(speedKts);
+
+      L.polyline(
+        [[prev.lat, prev.lon], [curr.lat, curr.lon]],
+        { color, weight: 4, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }
+      ).addTo(map);
+
+      latLngs.push([curr.lat, curr.lon]);
+    }
+
+    // Fit map to track
+    const bounds = L.latLngBounds(
+      points.map(p => [p.lat, p.lon])
+    );
+    map.fitBounds(bounds, { padding: [30, 30] });
+
+    // Start marker (green)
+    const start = points[0];
+    L.circleMarker([start.lat, start.lon], {
+      radius: 8,
+      fillColor: '#22c55e',
+      color: '#fff',
+      weight: 2,
+      fillOpacity: 1,
+    }).bindPopup('Start').addTo(map);
+
+    // End marker (red)
+    const end = points[points.length - 1];
+    L.circleMarker([end.lat, end.lon], {
+      radius: 8,
+      fillColor: '#ef4444',
+      color: '#fff',
+      weight: 2,
+      fillOpacity: 1,
+    }).bindPopup('Finish').addTo(map);
+  }
+
+  // ── Wind direction Leaflet control ─────────────────────────────────────────
+  function addWindControl(deg) {
+    const WindControl = L.Control.extend({
+      onAdd: function() {
+        const container = L.DomUtil.create('div', 'leaflet-wind-control');
+        container.innerHTML = `
+          <div class="arrow-wrap">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="transform:rotate(${deg}deg);display:block;">
+              <path d="M8 2 L8 14" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
+              <path d="M5 5 L8 2 L11 5" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span>Wind ${Math.round(deg)}° ${degToCompass(deg) || ''}</span>
+        `;
+        return container;
+      },
+    });
+    new WindControl({ position: 'topright' }).addTo(map);
+  }
+
+  // ── Populate stats panel ───────────────────────────────────────────────────
+  function populateStats(track) {
+    document.getElementById('race-title').textContent   = track.name;
+    document.getElementById('race-subtitle').textContent = formatDate(track.recorded_at);
+
+    document.getElementById('stat-duration').textContent  = formatDuration(track.duration_seconds);
+    document.getElementById('stat-max-speed').textContent = track.max_speed_knots != null
+      ? track.max_speed_knots.toFixed(1) : '—';
+    document.getElementById('stat-avg-speed').textContent = track.avg_speed_knots != null
+      ? track.avg_speed_knots.toFixed(1) : '—';
+
+    if (track.distance_meters != null) {
+      if (track.distance_meters >= 1000) {
+        document.getElementById('stat-distance').textContent = (track.distance_meters / 1000).toFixed(2);
+        document.getElementById('stat-distance-unit').textContent = 'kilometer';
+      } else {
+        document.getElementById('stat-distance').textContent = Math.round(track.distance_meters);
+        document.getElementById('stat-distance-unit').textContent = 'meter';
+      }
+    }
+
+    if (track.wind_direction_deg != null) {
+      const deg = track.wind_direction_deg;
+      document.getElementById('wind-section').style.display = 'block';
+      document.getElementById('wind-deg').textContent  = Math.round(deg) + '°';
+      document.getElementById('wind-dir').textContent  = degToCompass(deg) || '';
+
+      // Rotate compass arrow
+      const arrow = document.getElementById('compass-arrow');
+      if (arrow) arrow.style.transform = `rotate(${deg}deg)`;
+
+      addWindControl(deg);
+    }
+  }
+
+  // ── Main load sequence ────────────────────────────────────────────────────
+  async function loadRace() {
+    try {
+      // Fetch track metadata
+      const metaRes = await fetch(`${API}/tracks/${trackId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (metaRes.status === 401) {
+        localStorage.removeItem('regatta_token');
+        window.location.replace('index.html');
+        return;
+      }
+
+      if (!metaRes.ok) {
+        throw new Error(`Metadata HTTP ${metaRes.status}`);
+      }
+
+      const track = await metaRes.json();
+      populateStats(track);
+
+      // Fetch GPX file
+      const gpxRes = await fetch(`${API}/tracks/${trackId}/gpx`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!gpxRes.ok) {
+        throw new Error(`GPX HTTP ${gpxRes.status}`);
+      }
+
+      const gpxText = await gpxRes.text();
+      const points  = parseGpx(gpxText);
+
+      drawTrack(points);
+
+    } catch (err) {
+      showToast('Kon race niet laden: ' + err.message, 'error');
+      document.getElementById('race-title').textContent = 'Fout bij laden';
+    } finally {
+      document.getElementById('loading-overlay').style.display = 'none';
+    }
+  }
+
+  loadRace();
+
+  // ── Fix map size after layout ─────────────────────────────────────────────
+  window.addEventListener('resize', () => map.invalidateSize());
+  setTimeout(() => map.invalidateSize(), 200);
+</script>
+
+</body>
+</html>
