@@ -33,8 +33,18 @@ function initDb(dbPath) {
       created_at          TEXT    NOT NULL DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS series (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      name        TEXT    NOT NULL,
+      description TEXT,
+      season      TEXT,
+      created_by  INTEGER NOT NULL REFERENCES users(id),
+      created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS races (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      series_id   INTEGER REFERENCES series(id) ON DELETE SET NULL,
       name        TEXT    NOT NULL,
       description TEXT,
       race_date   TEXT,

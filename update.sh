@@ -67,6 +67,31 @@ db.exec(`
   )
 `);
 
+// Series tabel
+db.exec(`
+  CREATE TABLE IF NOT EXISTS series (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT    NOT NULL,
+    description TEXT,
+    season      TEXT,
+    created_by  INTEGER NOT NULL REFERENCES users(id),
+    created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+
+// series_id kolom op races
+const raceCols = db.prepare("PRAGMA table_info(races)").all().map(r => r.name);
+if (!raceCols.includes('series_id')) {
+  db.exec("ALTER TABLE races ADD COLUMN series_id INTEGER REFERENCES series(id) ON DELETE SET NULL");
+  console.log('  + races.series_id toegevoegd');
+}
+
+// description kolom op races
+if (!raceCols.includes('description')) {
+  db.exec("ALTER TABLE races ADD COLUMN description TEXT");
+  console.log('  + races.description toegevoegd');
+}
+
 db.exec("PRAGMA foreign_keys = ON");
 console.log('  Migraties voltooid.');
 JS

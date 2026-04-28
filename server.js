@@ -24,6 +24,7 @@ const { initDb } = require('./db');
 const createAuthRouter = require('./routes/auth');
 const createTracksRouter = require('./routes/tracks');
 const createRacesRouter = require('./routes/races');
+const createSeriesRouter = require('./routes/series');
 
 // ── Directory setup ────────────────────────────────────────────────────────
 const DATA_DIR = path.join(__dirname, 'data');
@@ -57,6 +58,7 @@ app.use((req, res, next) => { req.db = db; next(); });
 app.use('/api/auth', createAuthRouter(db));
 app.use('/api/tracks', createTracksRouter(db, TRACKS_DIR));
 app.use('/api/races', createRacesRouter(db, TRACKS_DIR));
+app.use('/api/series', createSeriesRouter(db));
 
 // ── Fallback: serve index.html for SPA-like navigation ────────────────────
 app.get('*', (req, res) => {
