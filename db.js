@@ -71,6 +71,11 @@ function initDb(dbPath) {
     );
   `);
 
+  // Migrations
+  try {
+    db.exec(`ALTER TABLE tracks ADD COLUMN original_filename TEXT`);
+  } catch (_) {}
+
   return db;
 }
 

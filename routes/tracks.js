@@ -158,6 +158,18 @@ function createTracksRouter(db, tracksDir) {
       return res.status(400).json({ error: 'Geen GPX-bestand ontvangen.' });
     }
 
+    const originalFilename = req.file.originalname || req.file.filename;
+
+    // Duplicate check by original filename
+    const existing = db
+      .prepare('SELECT id FROM tracks WHERE user_id = ? AND original_filename = ?')
+      .get(req.userId, originalFilename);
+
+    if (existing) {
+      try { fs.unlinkSync(req.file.path); } catch (_) {}
+      return res.status(409).json({ error: 'Track staat al op de server.', id: existing.id });
+    }
+
     try {
       const xmlContent = fs.readFileSync(req.file.path, 'utf8');
       const stats = parseGpx(xmlContent);
@@ -171,14 +183,15 @@ function createTracksRouter(db, tracksDir) {
       const result = db
         .prepare(
           `INSERT INTO tracks
-            (user_id, filename, name, recorded_at, duration_seconds,
+            (user_id, filename, original_filename, name, recorded_at, duration_seconds,
              distance_meters, max_speed_knots, avg_speed_knots,
              wind_direction_deg, point_count)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .run(
           req.userId,
           req.file.filename,
+          originalFilename,
           stats.name,
           stats.recordedAt,
           stats.durationSeconds,
@@ -192,7 +205,6 @@ function createTracksRouter(db, tracksDir) {
       return res.status(201).json({ id: result.lastInsertRowid });
     } catch (err) {
       console.error('Upload error:', err);
-      // Remove the file if parsing failed
       try { fs.unlinkSync(req.file.path); } catch (_) {}
       return res.status(422).json({ error: `Kon GPX niet verwerken: ${err.message}` });
     }
@@ -202,8 +214,9 @@ function createTracksRouter(db, tracksDir) {
   router.get('/', (req, res) => {
     const tracks = db
       .prepare(
-        `SELECT id, filename, name, recorded_at, duration_seconds, distance_meters,
-                max_speed_knots, avg_speed_knots, wind_direction_deg, point_count, created_at
+        `SELECT id, filename, original_filename, name, recorded_at, duration_seconds,
+                distance_meters, max_speed_knots, avg_speed_knots, wind_direction_deg,
+                point_count, created_at
          FROM tracks
          WHERE user_id = ?
          ORDER BY recorded_at DESC`
