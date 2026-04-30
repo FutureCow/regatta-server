@@ -617,22 +617,54 @@ async function loadAdminSeriesRaces(seriesId) {
         <button class="btn btn-secondary btn-sm toggle-classes-btn" data-race="${r.id}">Klassen</button>
       </div>
       <div class="classes-panel" id="classes-panel-${r.id}" style="display:none;"></div>`;
-    row.querySelector('.toggle-classes-btn').addEventListener('click', () => toggleRaceClassesAdmin(r.id));
+    row.querySelector('.toggle-classes-btn').addEventListener('click', () => toggleRaceClassesAdmin(r.id, seriesId));
     container.appendChild(row);
   }
 }
 
-async function toggleRaceClassesAdmin(raceId) {
+async function toggleRaceClassesAdmin(raceId, seriesId) {
   const panel = document.getElementById(`classes-panel-${raceId}`);
   if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
   panel.style.display = 'block';
   panel.innerHTML = '<span style="color:var(--text-muted);font-size:.8rem;">Laden…</span>';
 
-  const res = await apiFetch(`/races/${raceId}/classes`);
-  const classes = res.ok ? await res.json() : [];
+  const fetches = [apiFetch(`/races/${raceId}/classes`)];
+  if (seriesId) fetches.push(apiFetch(`/series/${seriesId}/classes`));
+  const [raceRes, seriesRes] = await Promise.all(fetches);
+  const classes = raceRes.ok ? await raceRes.json() : [];
+  const seriesClasses = (seriesId && seriesRes && seriesRes.ok) ? await seriesRes.json() : [];
   panel.innerHTML = '';
 
+  // Toon reeksklassen (read-only) bovenaan
+  if (seriesClasses.length) {
+    const header = document.createElement('p');
+    header.style.cssText = 'color:var(--text-muted);font-size:.75rem;font-weight:700;text-transform:uppercase;margin:0 0 4px;';
+    header.textContent = 'Reeksklassen (geldig voor alle wedstrijden)';
+    panel.appendChild(header);
+    for (const c of seriesClasses) {
+      const el = document.createElement('div');
+      el.className = 'class-row';
+      el.innerHTML = `
+        <div class="class-info">
+          <span class="class-name">${escapeHtml(c.name)}</span>
+          <span class="class-code" title="Klik om te kopiëren">${c.code}</span>
+          <span class="class-count">${c.participant_count} deelnemer(s)</span>
+        </div>`;
+      el.querySelector('.class-code').addEventListener('click', () => {
+        navigator.clipboard.writeText(c.code);
+        showToast(`Code ${c.code} gekopieerd`, 'success');
+      });
+      panel.appendChild(el);
+    }
+  }
+
   if (classes.length) {
+    if (seriesClasses.length) {
+      const header = document.createElement('p');
+      header.style.cssText = 'color:var(--text-muted);font-size:.75rem;font-weight:700;text-transform:uppercase;margin:8px 0 4px;';
+      header.textContent = 'Wedstrijdspecifieke klassen';
+      panel.appendChild(header);
+    }
     for (const c of classes) {
       const el = document.createElement('div');
       el.className = 'class-row';
@@ -651,11 +683,11 @@ async function toggleRaceClassesAdmin(raceId) {
         if (!confirm(`Klasse "${c.name}" verwijderen?`)) return;
         await apiFetch(`/classes/${c.id}`, { method: 'DELETE' });
         panel.style.display = 'none';
-        toggleRaceClassesAdmin(raceId);
+        toggleRaceClassesAdmin(raceId, seriesId);
       });
       panel.appendChild(el);
     }
-  } else {
+  } else if (!seriesClasses.length) {
     const empty = document.createElement('p');
     empty.style.cssText = 'color:var(--text-muted);font-size:.8rem;margin-bottom:8px;';
     empty.textContent = 'Nog geen klassen.';
@@ -675,7 +707,7 @@ async function toggleRaceClassesAdmin(raceId) {
     const { code } = await r.json();
     showToast(`Klasse aangemaakt — code: ${code}`, 'success');
     panel.style.display = 'none';
-    toggleRaceClassesAdmin(raceId);
+    toggleRaceClassesAdmin(raceId, seriesId);
   });
   panel.appendChild(addRow);
 }

@@ -52,6 +52,7 @@ function createSeriesRouter(db) {
       FROM races r
       LEFT JOIN race_tracks rt ON rt.race_id = r.id
       WHERE r.series_id = ?
+      GROUP BY r.id
       ORDER BY r.race_date ASC
     `).all(req.params.id);
 
