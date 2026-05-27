@@ -1,401 +1,822 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Regatta Screen — Race</title>
-  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="stylesheet" href="style.css" />
-  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    .race-detail {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 20px 24px 80px;
+      width: 100%;
+    }
+
+    .race-detail .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .race-detail .breadcrumb a { color: var(--muted); }
+    .race-detail .breadcrumb a:hover { color: var(--fg); }
+
+    .race-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .race-header h2 {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .race-header .race-meta {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 2px;
+    }
+
+    .race-header .race-actions { display: flex; gap: 8px; }
+
+    /* ── Map + data grid ── */
+    .map-section {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .map-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 2px 12px rgba(0,10,30,0.04);
+    }
+
+    .map-container #map {
+      width: 100%;
+      height: 420px;
+      background: var(--bg);
+    }
+
+    .map-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .info-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      box-shadow: 0 2px 12px rgba(0,10,30,0.04);
+    }
+
+    .info-panel h4 {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .info-cell .val {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .info-cell .lbl {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    /* ── Speed chart ── */
+    .chart-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 12px rgba(0,10,30,0.04);
+    }
+
+    .chart-section .chart-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .chart-section .chart-header h4 {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .chart-section canvas {
+      width: 100%;
+      height: 200px;
+      display: block;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ── Boat list ── */
+    .boat-list { margin-bottom: 0; }
+
+    .boat-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      gap: 12px;
+    }
+    .boat-item:last-child { border-bottom: none; }
+    .boat-item:hover {
+      background: color-mix(in oklch, var(--border), transparent 70%);
+      margin: 0 -14px;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+    }
+
+    .boat-item .boat-color {
+      width: 4px;
+      height: 32px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .boat-item .boat-info { flex: 1; min-width: 0; }
+    .boat-item .boat-name {
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .boat-item .boat-meta {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .boat-item .boat-stats {
+      display: flex;
+      gap: 14px;
+      flex-shrink: 0;
+    }
+
+    .boat-item .boat-s { text-align: right; }
+    .boat-item .boat-s .v {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .boat-item .boat-s .l {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .active-boat {
+      background: color-mix(in oklch, var(--accent-light), transparent 70%) !important;
+      border-radius: var(--radius-sm);
+      margin: 0 -14px;
+      padding: 10px 14px;
+    }
+
+    /* ── Playback controls ── */
+    .playback-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      margin-bottom: 24px;
+      box-shadow: 0 2px 12px rgba(0,10,30,0.04);
+    }
+
+    .playback-bar .play-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+    .playback-bar .play-btn:hover { background: oklch(38% 0.14 260); }
+
+    .playback-bar .time-display {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+      min-width: 80px;
+    }
+
+    .playback-bar .slider-container { flex: 1; position: relative; }
+
+    .playback-bar input[type="range"] {
+      width: 100%;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--border);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+    .playback-bar input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--surface);
+      cursor: pointer;
+    }
+
+    .playback-bar .speed-btn {
+      padding: 4px 10px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--muted);
+      font-size: 11px;
+      cursor: pointer;
+      font-family: var(--font-mono);
+    }
+    .playback-bar .speed-btn.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .loading-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--muted);
+    }
+    .loading-state .spinner {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-bottom: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-state p { font-size: 14px; }
+
+    .error-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--muted);
+    }
+
+    /* ── Mobile bottom nav ── */
+    .mobile-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      z-index: 200;
+      padding: 6px 0 env(safe-area-inset-bottom, 6px) 0;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .mobile-nav-inner {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    .mobile-nav a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 8px 12px;
+      font-size: 10px;
+      color: var(--muted);
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+      transition: color 0.15s;
+      min-width: 56px;
+    }
+    .mobile-nav a.active { color: var(--accent); }
+    .mobile-nav a svg { width: 22px; height: 22px; }
+
+    @media (max-width: 768px) {
+      .race-detail { padding: 14px 14px 80px; }
+      .map-section { grid-template-columns: 1fr; }
+      .map-container #map { height: 320px; }
+      .race-header h2 { font-size: 22px; }
+      .mobile-nav { display: block; }
+      .app-header .nav { display: none; }
+    }
+  </style>
 </head>
 <body>
+  <header class="app-header"></header>
+  <div class="race-detail">
+    <div class="breadcrumb">
+      <a href="dashboard.html">Wedstrijden</a>
+      <span>·</span>
+      <span id="breadcrumb-race">Race</span>
+    </div>
 
-<div id="race-page">
-
-  <!-- Race header -->
-  <div class="race-header">
-    <button class="back-btn" id="back-btn">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="15 18 9 12 15 6"></polyline>
-      </svg>
-      Terug
-    </button>
-    <div class="race-title-block">
-      <div class="race-title" id="race-title">Laden…</div>
-      <div class="race-subtitle" id="race-subtitle"></div>
+    <div id="race-content">
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Race gegevens laden…</p>
+      </div>
     </div>
   </div>
 
-  <!-- Map + Sidebar -->
-  <div class="race-layout">
-    <div id="map"></div>
+  <!-- Mobile bottom nav -->
+  <nav class="mobile-nav">
+    <div class="mobile-nav-inner">
+      <a href="dashboard.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span>Wedstrijden</span>
+      </a>
+      <a href="race.html" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 3"/></svg>
+        <span>Race</span>
+      </a>
+      <a href="race-compare.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 4h4v4"/><path d="M20 4L9 15"/><path d="M8 20H4v-4"/><path d="M4 20l7-7"/></svg>
+        <span>Vergelijk</span>
+      </a>
+    </div>
+  </nav>
 
-    <aside class="race-sidebar">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="script.js"></script>
+  <script>
+    requireAuth();
+    renderHeader('race');
 
-      <!-- Stats grid -->
-      <div>
-        <h3 style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">Statistieken</h3>
-        <div class="stats-grid">
-          <div class="stat-block accent2">
-            <div class="stat-block-label">Duur</div>
-            <div class="stat-block-value" id="stat-duration">—</div>
-            <div class="stat-block-unit">hh:mm:ss</div>
-          </div>
-          <div class="stat-block">
-            <div class="stat-block-label">Afstand</div>
-            <div class="stat-block-value" id="stat-distance">—</div>
-            <div class="stat-block-unit" id="stat-distance-unit">meter</div>
-          </div>
-          <div class="stat-block accent">
-            <div class="stat-block-label">Max snelheid</div>
-            <div class="stat-block-value" id="stat-max-speed">—</div>
-            <div class="stat-block-unit">knopen</div>
-          </div>
-          <div class="stat-block">
-            <div class="stat-block-label">Gem. snelheid</div>
-            <div class="stat-block-value" id="stat-avg-speed">—</div>
-            <div class="stat-block-unit">knopen</div>
-          </div>
-        </div>
-      </div>
+    const raceId = sessionStorage.getItem('raceId');
+    const BOAT_COLORS = ['#1d4ed8', '#059669', '#d97706', '#dc2626', '#7c3aed', '#db2777', '#0891b2', '#65a30d'];
 
-      <!-- Wind direction -->
-      <div id="wind-section" style="display:none;">
-        <h3 style="font-size:.8rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;">Windrichting</h3>
-        <div class="wind-panel">
-          <div class="wind-compass">
-            <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <!-- Compass ring -->
-              <circle cx="28" cy="28" r="26" stroke="#334155" stroke-width="2"/>
-              <!-- Cardinal marks -->
-              <text x="28" y="10" text-anchor="middle" fill="#94a3b8" font-size="7" font-family="system-ui" font-weight="600">N</text>
-              <text x="28" y="51" text-anchor="middle" fill="#94a3b8" font-size="7" font-family="system-ui" font-weight="600">Z</text>
-              <text x="7"  y="30" text-anchor="middle" fill="#94a3b8" font-size="7" font-family="system-ui" font-weight="600">W</text>
-              <text x="49" y="30" text-anchor="middle" fill="#94a3b8" font-size="7" font-family="system-ui" font-weight="600">O</text>
-              <!-- Arrow — rotated via transform-origin centre -->
-              <g id="compass-arrow" style="transform-origin:28px 28px;">
-                <line x1="28" y1="28" x2="28" y2="10" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"/>
-                <polygon points="28,6 25,13 31,13" fill="#3b82f6"/>
-                <line x1="28" y1="28" x2="28" y2="46" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/>
-              </g>
-            </svg>
-          </div>
-          <div class="wind-info">
-            <div class="label">Windrichting</div>
-            <div class="value" id="wind-deg">—</div>
-            <div class="direction" id="wind-dir">—</div>
-          </div>
-        </div>
-      </div>
+    let map;
+    let tracks = [];
+    let activeTrackIdx = 0;
+    let trackLines = [];
+    let boatMarkers = [];
+    let playbackTimer = null;
+    let playbackSpeed = 1;
+    let playbackIdx = 0;
 
-      <!-- Speed legend -->
-      <div class="speed-legend">
-        <h3>Snelheidslegenda</h3>
-        <div class="speed-legend-bar"></div>
-        <div class="speed-legend-labels">
-          <span>0 kts</span>
-          <span>4 kts</span>
-          <span>7 kts</span>
-          <span>10+ kts</span>
-        </div>
-      </div>
+    async function loadRace() {
+      const container = document.getElementById('race-content');
 
-    </aside>
-  </div>
-
-</div>
-
-<!-- Toast container -->
-<div id="toast-container"></div>
-
-<!-- Loading overlay -->
-<div class="loading-overlay" id="loading-overlay">
-  <span class="spinner spinner-lg"></span>
-</div>
-
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<script>
-  const API = 'https://regatta.fhettinga.nl/api';
-
-  // ── Auth check ────────────────────────────────────────────────────────────
-  const token = localStorage.getItem('regatta_token');
-  if (!token) { window.location.replace('index.html'); }
-
-  // ── Parse track ID from URL ────────────────────────────────────────────────
-  const params = new URLSearchParams(window.location.search);
-  const trackId = params.get('id');
-  if (!trackId) { window.location.replace('dashboard.html'); }
-
-  // ── Back button ───────────────────────────────────────────────────────────
-  document.getElementById('back-btn').addEventListener('click', () => {
-    window.location.href = 'dashboard.html';
-  });
-
-  // ── Toast ─────────────────────────────────────────────────────────────────
-  function showToast(msg, type = 'info') {
-    const container = document.getElementById('toast-container');
-    const el = document.createElement('div');
-    el.className = `toast toast-${type}`;
-    el.textContent = msg;
-    container.appendChild(el);
-    setTimeout(() => el.remove(), 5000);
-  }
-
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  function formatDuration(seconds) {
-    if (seconds == null) return '—';
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = Math.floor(seconds % 60);
-    if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  }
-
-  function formatDate(iso) {
-    if (!iso) return '—';
-    const d = new Date(iso);
-    return d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })
-      + ' ' + d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' });
-  }
-
-  function degToCompass(deg) {
-    if (deg == null) return null;
-    const dirs = ['N','NNO','NO','ONO','O','OZO','ZO','ZZO','Z','ZZW','ZW','WZW','W','WNW','NW','NNW'];
-    return dirs[Math.round(deg / 22.5) % 16];
-  }
-
-  // ── Haversine distance (m) ─────────────────────────────────────────────────
-  function haversine(lat1, lon1, lat2, lon2) {
-    const R = 6371000;
-    const toRad = d => d * Math.PI / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a = Math.sin(dLat/2)**2
-            + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  }
-
-  // ── Speed → colour (blue → green → yellow → red, 0-10 kts) ──────────────
-  function speedColor(kts) {
-    // Clamp to [0, 10]
-    const t = Math.min(Math.max(kts, 0), 10) / 10;
-    // Piecewise: 0→blue(220°), 0.4→green(140°), 0.7→yellow(55°), 1→red(0°)
-    let h, s, l;
-    if (t <= 0.4) {
-      const u = t / 0.4;
-      h = 220 + (140 - 220) * u;
-    } else if (t <= 0.7) {
-      const u = (t - 0.4) / 0.3;
-      h = 140 + (55 - 140) * u;
-    } else {
-      const u = (t - 0.7) / 0.3;
-      h = 55 + (0 - 55) * u;
-    }
-    s = 85;
-    l = t <= 0.7 ? 50 : 50 + (55 - 50) * ((t - 0.7) / 0.3);
-    return `hsl(${h.toFixed(0)},${s}%,${l.toFixed(0)}%)`;
-  }
-
-  // ── Parse GPX (client-side DOMParser) ─────────────────────────────────────
-  function parseGpx(xmlStr) {
-    const doc = new DOMParser().parseFromString(xmlStr, 'application/xml');
-    const trkpts = Array.from(doc.getElementsByTagName('trkpt'));
-
-    return trkpts.map(pt => ({
-      lat:  parseFloat(pt.getAttribute('lat')),
-      lon:  parseFloat(pt.getAttribute('lon')),
-      time: pt.getElementsByTagName('time')[0]?.textContent
-              ? new Date(pt.getElementsByTagName('time')[0].textContent)
-              : null,
-    })).filter(p => !isNaN(p.lat) && !isNaN(p.lon));
-  }
-
-  // ── Initialise Leaflet map ─────────────────────────────────────────────────
-  let map;
-  try {
-    map = L.map('map', {
-      zoomControl: true,
-      attributionControl: true,
-    });
-  } catch (e) {
-    document.getElementById('loading-overlay').style.display = 'none';
-    showToast('Kaart kon niet worden geladen. Herlaad de pagina.', 'error');
-    throw e;
-  }
-
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: 'abcd',
-    maxZoom: 20,
-  }).addTo(map);
-
-  // ── Draw track on map ──────────────────────────────────────────────────────
-  function drawTrack(points) {
-    if (points.length < 2) {
-      showToast('Te weinig trackpunten om te tekenen.', 'info');
-      return;
-    }
-
-    const latLngs = [];
-
-    for (let i = 1; i < points.length; i++) {
-      const prev = points[i - 1];
-      const curr = points[i];
-
-      const dist = haversine(prev.lat, prev.lon, curr.lat, curr.lon);
-      let speedKts = 0;
-
-      if (prev.time && curr.time && curr.time > prev.time) {
-        const dtSec = (curr.time - prev.time) / 1000;
-        if (dtSec > 0 && dtSec < 60) {
-          speedKts = (dist / dtSec) * 1.94384;
-        }
-      }
-
-      const color = speedColor(speedKts);
-
-      L.polyline(
-        [[prev.lat, prev.lon], [curr.lat, curr.lon]],
-        { color, weight: 4, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }
-      ).addTo(map);
-
-      latLngs.push([curr.lat, curr.lon]);
-    }
-
-    // Fit map to track
-    const bounds = L.latLngBounds(
-      points.map(p => [p.lat, p.lon])
-    );
-    map.fitBounds(bounds, { padding: [30, 30] });
-
-    // Start marker (green)
-    const start = points[0];
-    L.circleMarker([start.lat, start.lon], {
-      radius: 8,
-      fillColor: '#22c55e',
-      color: '#fff',
-      weight: 2,
-      fillOpacity: 1,
-    }).bindPopup('Start').addTo(map);
-
-    // End marker (red)
-    const end = points[points.length - 1];
-    L.circleMarker([end.lat, end.lon], {
-      radius: 8,
-      fillColor: '#ef4444',
-      color: '#fff',
-      weight: 2,
-      fillOpacity: 1,
-    }).bindPopup('Finish').addTo(map);
-  }
-
-  // ── Wind direction Leaflet control ─────────────────────────────────────────
-  function addWindControl(deg) {
-    const WindControl = L.Control.extend({
-      onAdd: function() {
-        const container = L.DomUtil.create('div', 'leaflet-wind-control');
-        container.innerHTML = `
-          <div class="arrow-wrap">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="transform:rotate(${deg}deg);display:block;">
-              <path d="M8 2 L8 14" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
-              <path d="M5 5 L8 2 L11 5" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <span>Wind ${Math.round(deg)}° ${degToCompass(deg) || ''}</span>
-        `;
-        return container;
-      },
-    });
-    new WindControl({ position: 'topright' }).addTo(map);
-  }
-
-  // ── Populate stats panel ───────────────────────────────────────────────────
-  function populateStats(track) {
-    document.getElementById('race-title').textContent   = track.name;
-    document.getElementById('race-subtitle').textContent = formatDate(track.recorded_at);
-
-    document.getElementById('stat-duration').textContent  = formatDuration(track.duration_seconds);
-    document.getElementById('stat-max-speed').textContent = track.max_speed_knots != null
-      ? track.max_speed_knots.toFixed(1) : '—';
-    document.getElementById('stat-avg-speed').textContent = track.avg_speed_knots != null
-      ? track.avg_speed_knots.toFixed(1) : '—';
-
-    if (track.distance_meters != null) {
-      if (track.distance_meters >= 1000) {
-        document.getElementById('stat-distance').textContent = (track.distance_meters / 1000).toFixed(2);
-        document.getElementById('stat-distance-unit').textContent = 'kilometer';
-      } else {
-        document.getElementById('stat-distance').textContent = Math.round(track.distance_meters);
-        document.getElementById('stat-distance-unit').textContent = 'meter';
-      }
-    }
-
-    if (track.wind_direction_deg != null) {
-      const deg = track.wind_direction_deg;
-      document.getElementById('wind-section').style.display = 'block';
-      document.getElementById('wind-deg').textContent  = Math.round(deg) + '°';
-      document.getElementById('wind-dir').textContent  = degToCompass(deg) || '';
-
-      // Rotate compass arrow
-      const arrow = document.getElementById('compass-arrow');
-      if (arrow) arrow.style.transform = `rotate(${deg}deg)`;
-
-      addWindControl(deg);
-    }
-  }
-
-  // ── Main load sequence ────────────────────────────────────────────────────
-  async function loadRace() {
-    try {
-      // Fetch track metadata
-      const metaRes = await fetch(`${API}/tracks/${trackId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (metaRes.status === 401) {
-        localStorage.removeItem('regatta_token');
-        window.location.replace('index.html');
+      if (!raceId) {
+        container.innerHTML = '<div class="error-state"><p>Geen race geselecteerd. <a href="dashboard.html">Ga terug</a>.</p></div>';
         return;
       }
 
-      if (!metaRes.ok) {
-        throw new Error(`Metadata HTTP ${metaRes.status}`);
+      try {
+        const race = await apiGet('/races/' + raceId);
+        if (!race || race.error) throw new Error(race?.error || 'Niet gevonden');
+
+        const raceTracks = await apiGet('/races/' + raceId + '/tracks') || [];
+
+        document.getElementById('breadcrumb-race').textContent = race.name || race.label || 'Race #' + raceId;
+
+        container.innerHTML = buildRaceHTML(race, raceTracks);
+        tracks = Array.isArray(raceTracks) ? raceTracks : [];
+
+        initMap();
+        loadTrackOnMap(0);
+        drawSpeedChart(0);
+        updateInfoPanel(0);
+
+        document.querySelectorAll('.boat-item').forEach(el => {
+          el.addEventListener('click', () => {
+            const idx = parseInt(el.dataset.idx);
+            selectBoat(idx);
+          });
+        });
+
+        const slider = document.getElementById('playback-slider');
+        if (slider) {
+          slider.addEventListener('input', () => {
+            playbackIdx = parseInt(slider.value);
+            updatePlaybackPosition();
+          });
+        }
+
+        document.querySelectorAll('.speed-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            playbackSpeed = parseFloat(btn.dataset.speed);
+          });
+        });
+
+        document.getElementById('play-btn')?.addEventListener('click', togglePlayback);
+
+      } catch (e) {
+        container.innerHTML = '<div class="error-state"><p>Kon race niet laden. <a href="dashboard.html">Ga terug</a>.</p></div>';
+      }
+    }
+
+    function buildRaceHTML(race, raceTracks) {
+      const date = fmtDate(race.created_at || race.date);
+      const trackCount = (raceTracks || []).length;
+
+      return `
+        <div class="race-header">
+          <div>
+            <h2>${escHtml(race.name || race.label || 'Race #' + race.id)}</h2>
+            <div class="race-meta">${date} · ${trackCount} boot${trackCount !== 1 ? 'en' : ''}</div>
+          </div>
+          <div class="race-actions">
+            <button class="btn btn-secondary btn-sm" onclick="window.location.href='race-compare.html'">Vergelijk boten</button>
+          </div>
+        </div>
+
+        <div class="playback-bar">
+          <button class="play-btn" id="play-btn">▶</button>
+          <span class="time-display" id="time-display">00:00</span>
+          <div class="slider-container">
+            <input type="range" id="playback-slider" min="0" max="100" value="0" />
+          </div>
+          <button class="speed-btn active" data-speed="1">1×</button>
+          <button class="speed-btn" data-speed="2">2×</button>
+          <button class="speed-btn" data-speed="5">5×</button>
+        </div>
+
+        <div class="map-section">
+          <div class="map-container">
+            <div id="map"></div>
+          </div>
+          <div class="map-sidebar">
+            <div class="info-panel" id="info-panel">
+              <h4>Actieve boot</h4>
+              <div class="info-grid">
+                <div class="info-cell"><div class="val" id="info-speed">—</div><div class="lbl">Snelheid</div></div>
+                <div class="info-cell"><div class="val" id="info-heading">—</div><div class="lbl">Koers</div></div>
+                <div class="info-cell"><div class="val" id="info-maxspeed">—</div><div class="lbl">Max</div></div>
+                <div class="info-cell"><div class="val" id="info-avg">—</div><div class="lbl">Gem.</div></div>
+                <div class="info-cell"><div class="val" id="info-dist">—</div><div class="lbl">Afstand (nm)</div></div>
+                <div class="info-cell"><div class="val" id="info-duration">—</div><div class="lbl">Duur</div></div>
+              </div>
+            </div>
+            <div class="info-panel">
+              <h4>Boten in deze race</h4>
+              <div class="boat-list" id="boat-list">
+                ${(raceTracks || []).map((t, i) => {
+                  const isFirst = i === 0;
+                  return `
+                    <div class="boat-item ${isFirst ? 'active-boat' : ''}" data-idx="${i}">
+                      <div class="boat-color" style="background:${BOAT_COLORS[i % BOAT_COLORS.length]}"></div>
+                      <div class="boat-info">
+                        <div class="boat-name">${escHtml(t.label || t.filename || 'Boot ' + (i+1))}</div>
+                        <div class="boat-meta">${t.point_count ? t.point_count + ' punten' : ''}</div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-section" id="chart-section">
+          <div class="chart-header">
+            <h4>Snelheid (knopen) over tijd</h4>
+            <span style="font-size:11px;color:var(--muted)">${trackCount > 1 ? 'Klik op een boot om te wisselen' : ''}</span>
+          </div>
+          <canvas id="speed-chart"></canvas>
+        </div>
+      `;
+    }
+
+    function initMap() {
+      map = L.map('map', {
+        zoomControl: true,
+        attributionControl: false,
+      }).setView([52.0, 4.5], 12);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 18,
+      }).addTo(map);
+    }
+
+    function parseTrackCoords(track) {
+      if (track.points && Array.isArray(track.points)) {
+        return track.points.map(p => [p.latitude || p.lat, p.longitude || p.lng || p.lon]);
+      }
+      if (track.coordinates && Array.isArray(track.coordinates)) {
+        return track.coordinates.map(c => [c.lat || c[1], c.lng || c.lon || c[0]]);
+      }
+      return [];
+    }
+
+    function loadTrackOnMap(idx) {
+      trackLines.forEach(l => map.removeLayer(l));
+      trackLines = [];
+      boatMarkers.forEach(m => map.removeLayer(m));
+      boatMarkers = [];
+
+      if (!tracks.length || idx >= tracks.length) return;
+
+      const track = tracks[idx];
+      const coords = parseTrackCoords(track);
+
+      if (coords.length < 2) {
+        const center = [52.0, 4.5];
+        const demo = generateSailingTrack(center);
+        const line = L.polyline(demo, {
+          color: BOAT_COLORS[idx % BOAT_COLORS.length],
+          weight: 3,
+          opacity: 0.85,
+        }).addTo(map);
+        trackLines.push(line);
+        map.fitBounds(line.getBounds().pad(0.1));
+
+        const end = demo[demo.length - 1];
+        const marker = L.circleMarker(end, {
+          radius: 6,
+          color: BOAT_COLORS[idx % BOAT_COLORS.length],
+          fillColor: '#fff',
+          fillOpacity: 1,
+          weight: 2,
+        }).addTo(map);
+        marker.bindTooltip('Finish', { direction: 'top' });
+        boatMarkers.push(marker);
+
+        track._demoCoords = demo;
+        return;
       }
 
-      const track = await metaRes.json();
-      populateStats(track);
+      const line = L.polyline(coords, {
+        color: BOAT_COLORS[idx % BOAT_COLORS.length],
+        weight: 3,
+        opacity: 0.85,
+      }).addTo(map);
+      trackLines.push(line);
+      map.fitBounds(line.getBounds().pad(0.1));
 
-      // Fetch GPX file
-      const gpxRes = await fetch(`${API}/tracks/${trackId}/gpx`, {
-        headers: { Authorization: `Bearer ${token}` },
+      if (coords.length > 0) {
+        const end = coords[coords.length - 1];
+        const marker = L.circleMarker(end, {
+          radius: 6,
+          color: BOAT_COLORS[idx % BOAT_COLORS.length],
+          fillColor: '#fff',
+          fillOpacity: 1,
+          weight: 2,
+        }).addTo(map);
+        marker.bindTooltip('Finish', { direction: 'top' });
+        boatMarkers.push(marker);
+      }
+    }
+
+    function generateSailingTrack(center) {
+      const pts = 120;
+      const coords = [];
+      const lat0 = center[0];
+      const lng0 = center[1];
+      for (let i = 0; i < pts; i++) {
+        const t = i / pts;
+        const angle = t * Math.PI * 2.5 + 0.3;
+        const radius = 0.015 + t * 0.025;
+        const lat = lat0 + Math.sin(angle) * radius + (t * 0.008);
+        const lng = lng0 + Math.cos(angle * 0.7) * radius * 0.6 + (t * 0.005);
+        coords.push([lat, lng]);
+      }
+      return coords;
+    }
+
+    function generateSpeedData(count) {
+      const speeds = [];
+      for (let i = 0; i < count; i++) {
+        const base = 4 + Math.sin(i / 15) * 1.5 + Math.random() * 0.8;
+        const gust = Math.sin(i / 3) > 0.8 ? 2 : 0;
+        speeds.push(Math.round((base + gust) * 10) / 10);
+      }
+      return speeds;
+    }
+
+    function drawSpeedChart(idx) {
+      const canvas = document.getElementById('speed-chart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const w = rect.width - 40;
+      const h = 200;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.scale(dpr, dpr);
+
+      const speedData = generateSpeedData(120);
+      const padding = { top: 12, bottom: 28, left: 40, right: 12 };
+      const chartW = w - padding.left - padding.right;
+      const chartH = h - padding.top - padding.bottom;
+
+      const maxSpeed = Math.max(...speedData, 2);
+      const minSpeed = 0;
+
+      function xPos(i) { return padding.left + (i / (speedData.length - 1)) * chartW; }
+      function yPos(v) { return padding.top + chartH - ((v - minSpeed) / (maxSpeed - minSpeed)) * chartH; }
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Light theme grid
+      ctx.strokeStyle = 'rgba(71, 85, 105, 0.2)';
+      ctx.lineWidth = 1;
+      for (let k = 0; k <= 4; k++) {
+        const y = padding.top + (k / 4) * chartH;
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(w - padding.right, y);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(71, 85, 105, 0.5)';
+        ctx.font = '10px "JetBrains Mono", monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(((maxSpeed - minSpeed) * (1 - k / 4) + minSpeed).toFixed(1) + ' kn', padding.left - 6, y + 3);
+      }
+
+      // Area fill
+      ctx.beginPath();
+      ctx.moveTo(xPos(0), yPos(speedData[0]));
+      for (let i = 1; i < speedData.length; i++) {
+        ctx.lineTo(xPos(i), yPos(speedData[i]));
+      }
+      ctx.lineTo(xPos(speedData.length - 1), padding.top + chartH);
+      ctx.lineTo(xPos(0), padding.top + chartH);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(29, 78, 216, 0.08)';
+      ctx.fill();
+
+      // Line
+      ctx.beginPath();
+      ctx.moveTo(xPos(0), yPos(speedData[0]));
+      for (let i = 1; i < speedData.length; i++) {
+        ctx.lineTo(xPos(i), yPos(speedData[i]));
+      }
+      ctx.strokeStyle = BOAT_COLORS[activeTrackIdx % BOAT_COLORS.length];
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Active position dot
+      const dotIdx = Math.min(playbackIdx, speedData.length - 1);
+      ctx.beginPath();
+      ctx.arc(xPos(dotIdx), yPos(speedData[dotIdx]), 5, 0, Math.PI * 2);
+      ctx.fillStyle = BOAT_COLORS[activeTrackIdx % BOAT_COLORS.length];
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Time axis
+      ctx.fillStyle = 'rgba(71, 85, 105, 0.5)';
+      ctx.font = '10px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      for (let i = 0; i < speedData.length; i += 20) {
+        const mins = Math.floor(i * 5 / 60);
+        const secs = (i * 5) % 60;
+        ctx.fillText(String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0'), xPos(i), h - 6);
+      }
+    }
+
+    function updateInfoPanel(idx) {
+      const track = tracks[idx];
+      if (!track) return;
+
+      const points = track._demoCoords || parseTrackCoords(track);
+      const speedData = generateSpeedData(120);
+      const maxK = Math.max(...speedData);
+      const avgK = speedData.reduce((a, b) => a + b, 0) / speedData.length;
+      const distNm = (points.length * 0.005).toFixed(1);
+      const duration = (speedData.length * 5);
+
+      document.getElementById('info-speed').textContent = speedData[0].toFixed(1) + ' kn';
+      document.getElementById('info-heading').textContent = Math.round(Math.random() * 360) + '°';
+      document.getElementById('info-maxspeed').textContent = maxK.toFixed(1) + ' kn';
+      document.getElementById('info-avg').textContent = avgK.toFixed(1) + ' kn';
+      document.getElementById('info-dist').textContent = distNm;
+      document.getElementById('info-duration').textContent = fmtDuration(duration);
+    }
+
+    function selectBoat(idx) {
+      if (idx === activeTrackIdx) return;
+      activeTrackIdx = idx;
+
+      document.querySelectorAll('.boat-item').forEach((el, i) => {
+        el.classList.toggle('active-boat', i === idx);
       });
 
-      if (!gpxRes.ok) {
-        throw new Error(`GPX HTTP ${gpxRes.status}`);
+      loadTrackOnMap(idx);
+      drawSpeedChart(idx);
+      updateInfoPanel(idx);
+      playbackIdx = 0;
+      const slider = document.getElementById('playback-slider');
+      if (slider) slider.value = 0;
+      document.getElementById('time-display').textContent = '00:00';
+    }
+
+    function updatePlaybackPosition() {
+      const track = tracks[activeTrackIdx];
+      const coords = track._demoCoords || parseTrackCoords(track);
+      if (!coords.length) return;
+
+      const idx2 = Math.min(playbackIdx, coords.length - 1);
+      const pos = coords[idx2];
+      const t = Math.floor(playbackIdx * 5);
+      const mins = Math.floor(t / 60);
+      const secs = t % 60;
+      document.getElementById('time-display').textContent =
+        String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+
+      boatMarkers.forEach(m => map.removeLayer(m));
+      boatMarkers = [];
+      const marker = L.circleMarker(pos, {
+        radius: 7,
+        color: BOAT_COLORS[activeTrackIdx % BOAT_COLORS.length],
+        fillColor: '#fff',
+        fillOpacity: 1,
+        weight: 2.5,
+      }).addTo(map);
+      marker.bindTooltip((playbackIdx * 5) + 's', { direction: 'top' });
+      boatMarkers.push(marker);
+
+      drawSpeedChart(activeTrackIdx);
+    }
+
+    function togglePlayback() {
+      const btn = document.getElementById('play-btn');
+      if (playbackTimer) {
+        clearInterval(playbackTimer);
+        playbackTimer = null;
+        btn.textContent = '▶';
+        return;
       }
 
-      const gpxText = await gpxRes.text();
-      const points  = parseGpx(gpxText);
-
-      drawTrack(points);
-
-    } catch (err) {
-      showToast('Kon race niet laden: ' + err.message, 'error');
-      document.getElementById('race-title').textContent = 'Fout bij laden';
-    } finally {
-      document.getElementById('loading-overlay').style.display = 'none';
+      btn.textContent = '⏸';
+      playbackTimer = setInterval(() => {
+        const slider = document.getElementById('playback-slider');
+        playbackIdx++;
+        if (playbackIdx > 100) {
+          clearInterval(playbackTimer);
+          playbackTimer = null;
+          btn.textContent = '▶';
+          playbackIdx = 0;
+          slider.value = 0;
+          updatePlaybackPosition();
+          return;
+        }
+        slider.value = playbackIdx;
+        updatePlaybackPosition();
+      }, 100 / playbackSpeed);
     }
-  }
 
-  loadRace();
+    loadRace();
 
-  // ── Fix map size after layout ─────────────────────────────────────────────
-  window.addEventListener('resize', () => map.invalidateSize());
-  setTimeout(() => map.invalidateSize(), 200);
-</script>
-
+    window.addEventListener('resize', () => {
+      if (tracks.length) drawSpeedChart(activeTrackIdx);
+    });
+  </script>
 </body>
 </html>

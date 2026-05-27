@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#faf9f5" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Regatta Screen</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --nav-height: 52px;
+      --tab-height: 52px;
+    }
+
+    * { -webkit-tap-highlight-color: transparent; }
+
+    /* ── Mobile shell ── */
+    .mobile-shell {
+      min-height: 100vh;
+      padding-bottom: calc(var(--tab-height) + 8px);
+      background: var(--bg);
+    }
+
+    /* ── Top bar ── */
+    .mobile-topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      min-height: var(--nav-height);
+    }
+
+    .mobile-topbar .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .mobile-topbar .logo svg { width: 24px; height: 24px; }
+
+    .mobile-topbar .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mobile-topbar .top-actions .email-badge {
+      font-size: 11px;
+      color: var(--muted);
+      max-width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── Tab bar ── */
+    .mobile-tabs {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 4px 0 env(safe-area-inset-bottom, 4px) 0;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .mobile-tabs a {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+      padding: 6px 4px;
+      font-size: 10px;
+      color: var(--muted);
+      text-decoration: none;
+      border-radius: 4px;
+      transition: color 0.15s;
+    }
+    .mobile-tabs a.active { color: var(--accent); }
+    .mobile-tabs a svg { width: 22px; height: 22px; }
+
+    /* ── Dashboard view ── */
+    .dashboard-view { padding: 0; }
+
+    .dashboard-view .section-header {
+      padding: 14px 16px 8px;
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .dashboard-view .section-sub {
+      padding: 0 16px 14px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* Stats row */
+    .mobile-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      padding: 0 16px 16px;
+    }
+
+    .mobile-stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px 10px;
+      text-align: center;
+      box-shadow: 0 1px 6px rgba(0,10,30,0.04);
+    }
+
+    .mobile-stat .val {
+      font-family: var(--font-mono);
+      font-size: 22px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+
+    .mobile-stat .lbl {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    /* Race list */
+    .mobile-race-list { padding: 0 16px; }
+
+    .mobile-race-item {
+      display: flex;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      gap: 12px;
+    }
+    .mobile-race-item:active {
+      background: color-mix(in oklch, var(--border), transparent 70%);
+      margin: 0 -16px;
+      padding: 14px 16px;
+      border-radius: var(--radius-sm);
+    }
+    .mobile-race-item:last-child { border-bottom: none; }
+
+    .mobile-race-item .race-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: color-mix(in oklch, var(--accent-light), transparent 70%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .mobile-race-item .race-icon svg { width: 18px; height: 18px; stroke: var(--accent); }
+
+    .mobile-race-item .race-info { flex: 1; min-width: 0; }
+    .mobile-race-item .race-name {
+      font-weight: 600;
+      font-size: 15px;
+    }
+    .mobile-race-item .race-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    .mobile-race-item .race-boats {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    /* ── Race detail view ── */
+    .race-detail-view { padding: 0; }
+
+    .race-detail-view .race-title-row {
+      padding: 14px 16px 4px;
+    }
+
+    .race-detail-view .race-title-row h2 {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .race-detail-view .race-title-row .meta {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* Mobile mini map */
+    .mobile-map-wrap {
+      margin: 12px 16px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 12px rgba(0,10,30,0.04);
+    }
+
+    #mobile-map {
+      width: 100%;
+      height: 260px;
+      background: var(--bg);
+    }
+
+    /* Quick stats */
+    .quick-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      padding: 0 16px 12px;
+    }
+
+    .quick-stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      text-align: center;
+      box-shadow: 0 1px 4px rgba(0,10,30,0.03);
+    }
+    .quick-stat .v {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .quick-stat .l {
+      font-size: 9px;
+      color: var(--muted);
+      margin-top: 1px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Boat list mobile */
+    .mobile-boat-strip {
+      padding: 0 16px 12px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+    }
+    .mobile-boat-strip::-webkit-scrollbar { display: none; }
+
+    .mobile-boat-card {
+      flex-shrink: 0;
+      width: 130px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      scroll-snap-align: start;
+      box-shadow: 0 1px 4px rgba(0,10,30,0.03);
+      cursor: pointer;
+    }
+    .mobile-boat-card:active { background: color-mix(in oklch, var(--border), transparent 60%); }
+    .mobile-boat-card.active-boat { border-color: var(--accent); }
+
+    .mobile-boat-card .boat-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-bottom: 6px;
+    }
+
+    .mobile-boat-card .boat-name {
+      font-weight: 600;
+      font-size: 12px;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .mobile-boat-card .boat-speed {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .mobile-boat-card .boat-speed-lbl {
+      font-size: 9px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    /* Mini chart mobile */
+    .mobile-chart-wrap {
+      margin: 0 16px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      box-shadow: 0 1px 6px rgba(0,10,30,0.04);
+    }
+
+    .mobile-chart-wrap h4 {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: var(--muted);
+    }
+
+    #mobile-chart {
+      width: 100%;
+      height: 140px;
+      display: block;
+    }
+
+    /* Playback bar mobile */
+    .mobile-playback {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 16px 16px;
+      padding: 10px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: 0 1px 6px rgba(0,10,30,0.04);
+    }
+
+    .mobile-playback .play-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .mobile-playback .play-btn:active { opacity: 0.8; }
+
+    .mobile-playback .time {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+      min-width: 70px;
+    }
+
+    .mobile-playback input[type="range"] {
+      flex: 1;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--border);
+      border-radius: 2px;
+      outline: none;
+    }
+    .mobile-playback input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--surface);
+    }
+
+    /* ── Empty state ── */
+    .empty-mobile {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+    }
+    .empty-mobile svg { width: 40px; height: 40px; opacity: 0.3; margin-bottom: 12px; }
+    .empty-mobile h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; color: var(--fg); }
+    .empty-mobile p { font-size: 13px; }
+
+    .loading-mobile {
+      text-align: center;
+      padding: 40px;
+    }
+    .loading-mobile .spinner {
+      display: inline-block;
+      width: 24px; height: 24px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="mobile-shell" id="app-root">
+    <!-- Top bar -->
+    <div class="mobile-topbar">
+      <div class="logo">
+        <svg viewBox="0 0 32 32" fill="none" stroke="var(--accent)" stroke-width="1.5">
+          <path d="M16 4L6 22h20L16 4z" fill="color-mix(in oklch, var(--accent), transparent 85%)"/>
+          <path d="M16 22v7"/><path d="M11 29h10"/><path d="M16 4v-2" stroke-width="2"/>
+        </svg>
+        <span>Regatta</span>
+      </div>
+      <div class="top-actions">
+        <span class="email-badge" id="email-badge"></span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8" style="width:20px;height:20px" onclick="handleLogout()">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Dashboard view -->
+    <div id="dashboard-view" class="dashboard-view">
+      <div class="section-header">Wedstrijden</div>
+      <div class="section-sub" id="subtitle">Je race-data laden…</div>
+
+      <div class="mobile-stats" id="stats-row">
+        <div class="mobile-stat"><div class="val" id="stat-races">—</div><div class="lbl">Wedstrijden</div></div>
+        <div class="mobile-stat"><div class="val" id="stat-tracks">—</div><div class="lbl">Tracks</div></div>
+        <div class="mobile-stat"><div class="val" id="stat-distance">—</div><div class="lbl">Afstand (nm)</div></div>
+      </div>
+
+      <div class="mobile-race-list" id="race-list">
+        <div class="loading-mobile"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Race detail view (hidden by default) -->
+    <div id="race-detail-view" class="race-detail-view" style="display:none">
+      <div class="race-title-row">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" style="width:20px;height:20px;cursor:pointer" id="back-detail">
+            <polyline points="15,18 9,12 15,6"/>
+          </svg>
+          <h2 id="race-title">Race</h2>
+        </div>
+        <div class="meta" id="race-meta">—</div>
+      </div>
+
+      <div class="mobile-map-wrap">
+        <div id="mobile-map"></div>
+      </div>
+
+      <div class="quick-strip">
+        <div class="quick-stat"><div class="v" id="mq-speed">—</div><div class="l">Snelheid</div></div>
+        <div class="quick-stat"><div class="v" id="mq-max">—</div><div class="l">Max</div></div>
+        <div class="quick-stat"><div class="v" id="mq-avg">—</div><div class="l">Gem.</div></div>
+      </div>
+
+      <div class="mobile-playback">
+        <button class="play-btn" id="m-play-btn">▶</button>
+        <span class="time" id="m-time">00:00</span>
+        <input type="range" id="m-slider" min="0" max="100" value="0" />
+      </div>
+
+      <div style="padding:0 16px 8px">
+        <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">Boten</span>
+      </div>
+      <div class="mobile-boat-strip" id="boat-strip">
+        <!-- filled by JS -->
+      </div>
+
+      <div class="mobile-chart-wrap">
+        <h4>Snelheid (knopen)</h4>
+        <canvas id="mobile-chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <nav class="mobile-tabs">
+    <a href="#" id="tab-dash" class="active" onclick="showDashboard()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Wedstrijden</span>
+    </a>
+    <a href="#" onclick="showRaceDetail()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 3"/></svg>
+      <span>Race</span>
+    </a>
+    <a href="race-compare.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 4h4v4"/><path d="M20 4L9 15"/><path d="M8 20H4v-4"/><path d="M4 20l7-7"/></svg>
+      <span>Vergelijk</span>
+    </a>
+  </nav>
+
+  <script src="script.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    requireAuth();
+    const email = getEmail();
+    document.getElementById('email-badge').textContent = email || '';
+
+    const BOAT_COLORS = ['#1d4ed8', '#059669', '#d97706', '#dc2626', '#7c3aed', '#db2777', '#0891b2', '#65a30d'];
+
+    // ── View switching ──
+    let currentView = 'dashboard';
+
+    function showDashboard() {
+      currentView = 'dashboard';
+      document.getElementById('dashboard-view').style.display = 'block';
+      document.getElementById('race-detail-view').style.display = 'none';
+      document.getElementById('tab-dash').classList.add('active');
+      document.querySelector('.mobile-tabs a:nth-child(2)').classList.remove('active');
+    }
+
+    function showRaceDetail() {
+      if (!currentRaceId) {
+        // No race selected, go to the web race page
+        window.location.href = 'race.html';
+        return;
+      }
+      currentView = 'race';
+      document.getElementById('dashboard-view').style.display = 'none';
+      document.getElementById('race-detail-view').style.display = 'block';
+      document.getElementById('tab-dash').classList.remove('active');
+      document.querySelector('.mobile-tabs a:nth-child(2)').classList.add('active');
+      setTimeout(() => { if (map) map.invalidateSize(); }, 100);
+    }
+
+    document.getElementById('back-detail').addEventListener('click', showDashboard);
+
+    // ── Data ──
+    let races = [];
+    let tracks = [];
+    let currentRaceId = null;
+    let currentRaceData = null;
+    let currentRaceTracks = [];
+    let activeTrackIdx = 0;
+    let map, trackLine, boatMarker;
+    let playbackTimer = null;
+    let playbackIdx = 0;
+
+    // ── Dashboard ──
+    async function loadDashboard() {
+      try {
+        [races, tracks] = await Promise.all([
+          apiGet('/races') || [],
+          apiGet('/tracks') || [],
+        ]);
+        if (!Array.isArray(races)) races = [];
+        if (!Array.isArray(tracks)) tracks = [];
+
+        document.getElementById('stat-races').textContent = races.length;
+        document.getElementById('stat-tracks').textContent = tracks.length;
+
+        const subtitle = document.getElementById('subtitle');
+        if (races.length > 0) {
+          subtitle.textContent = races.length + ' wedstrijd' + (races.length !== 1 ? 'en' : '');
+        } else {
+          subtitle.textContent = 'Nog geen wedstrijden';
+        }
+        renderRaceList(races);
+      } catch (e) {
+        document.getElementById('race-list').innerHTML =
+          '<div class="empty-mobile"><p>Kon gegevens niet laden.</p></div>';
+      }
+    }
+
+    function renderRaceList(list) {
+      const container = document.getElementById('race-list');
+
+      if (!list.length) {
+        container.innerHTML = `
+          <div class="empty-mobile">
+            <svg viewBox="0 0 28 28" fill="none" stroke="var(--muted)" stroke-width="1.5">
+              <path d="M14 3L6 18h16L14 3z"/><path d="M14 18v7"/><path d="M10 25h8"/>
+            </svg>
+            <h3>Nog geen wedstrijden</h3>
+            <p>Upload een track via de Regatta Screen app</p>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(r => {
+        const name = r.name || r.label || 'Race #' + r.id;
+        const date = fmtDate(r.created_at || r.date);
+        const time = fmtTime(r.created_at);
+        const boatCount = r.track_count || '—';
+        return `
+          <div class="mobile-race-item" onclick="openRaceMobile(${r.id})">
+            <div class="race-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 3"/></svg>
+            </div>
+            <div class="race-info">
+              <div class="race-name">${escHtml(name)}</div>
+              <div class="race-meta">${date} · ${time}</div>
+            </div>
+            <div class="race-boats">${boatCount}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ── Race detail ──
+    async function openRaceMobile(raceId) {
+      currentRaceId = raceId;
+      sessionStorage.setItem('raceId', raceId);
+
+      const container = document.getElementById('boat-strip');
+      container.innerHTML = '<div class="loading-mobile" style="padding:10px"><div class="spinner"></div></div>';
+
+      try {
+        const race = await apiGet('/races/' + raceId);
+        if (!race || race.error) throw new Error('Niet gevonden');
+        currentRaceData = race;
+
+        const raceTracks = await apiGet('/races/' + raceId + '/tracks') || [];
+        currentRaceTracks = Array.isArray(raceTracks) ? raceTracks : [];
+
+        document.getElementById('race-title').textContent = race.name || race.label || 'Race #' + raceId;
+        document.getElementById('race-meta').textContent =
+          fmtDate(race.created_at || race.date) + ' · ' + currentRaceTracks.length + ' boten';
+
+        activeTrackIdx = 0;
+        renderBoatStrip();
+
+        // Init map
+        initMobileMap();
+        loadMobileTrack(0);
+        updateQuickStats(0);
+
+        // Playback
+        const slider = document.getElementById('m-slider');
+        slider.addEventListener('input', () => {
+          playbackIdx = parseInt(slider.value);
+          updateMobilePlayback();
+        });
+        document.getElementById('m-play-btn').addEventListener('click', toggleMobilePlayback);
+
+        showRaceDetail();
+      } catch (e) {
+        container.innerHTML = '<div class="empty-mobile"><p>Kon race niet laden.</p></div>';
+      }
+    }
+
+    function renderBoatStrip() {
+      const container = document.getElementById('boat-strip');
+      const speedData = generateSpeedData(120);
+      container.innerHTML = currentRaceTracks.map((t, i) => {
+        const isActive = i === activeTrackIdx;
+        const speed = speedData[0] || 0;
+        return `
+          <div class="mobile-boat-card ${isActive ? 'active-boat' : ''}" onclick="selectMobileBoat(${i})">
+            <div class="boat-dot" style="background:${BOAT_COLORS[i % BOAT_COLORS.length]}"></div>
+            <div class="boat-name">${escHtml(t.label || t.filename || 'Boot ' + (i+1))}</div>
+            <div class="boat-speed">${speed.toFixed(1)}</div>
+            <div class="boat-speed-lbl">knopen</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function selectMobileBoat(idx) {
+      if (idx === activeTrackIdx) return;
+      activeTrackIdx = idx;
+      renderBoatStrip();
+      loadMobileTrack(idx);
+      updateQuickStats(idx);
+      drawMobileChart();
+      playbackIdx = 0;
+      document.getElementById('m-slider').value = 0;
+      document.getElementById('m-time').textContent = '00:00';
+    }
+
+    function initMobileMap() {
+      if (map) { map.remove(); map = null; }
+      map = L.map('mobile-map', {
+        zoomControl: false,
+        attributionControl: false,
+      }).setView([52.0, 4.5], 12);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 18,
+      }).addTo(map);
+    }
+
+    function getTrackCoords(track) {
+      if (track.points && Array.isArray(track.points)) {
+        return track.points.map(p => [p.latitude || p.lat, p.longitude || p.lng || p.lon]);
+      }
+      if (track.coordinates && Array.isArray(track.coordinates)) {
+        return track.coordinates.map(c => [c.lat || c[1], c.lng || c.lon || c[0]]);
+      }
+      const center = [52.0, 4.5];
+      const pts = 120;
+      const coords = [];
+      for (let i = 0; i < pts; i++) {
+        const t = i / pts;
+        const angle = t * Math.PI * 2.5 + 0.3;
+        const r = 0.015 + t * 0.025;
+        coords.push([
+          center[0] + Math.sin(angle) * r + (t * 0.008),
+          center[1] + Math.cos(angle * 0.7) * r * 0.6 + (t * 0.005),
+        ]);
+      }
+      return coords;
+    }
+
+    function loadMobileTrack(idx) {
+      if (trackLine) { map.removeLayer(trackLine); trackLine = null; }
+      if (boatMarker) { map.removeLayer(boatMarker); boatMarker = null; }
+
+      if (!currentRaceTracks.length || idx >= currentRaceTracks.length) return;
+
+      const track = currentRaceTracks[idx];
+      const coords = getTrackCoords(track);
+      if (coords.length < 2) return;
+
+      trackLine = L.polyline(coords, {
+        color: BOAT_COLORS[idx % BOAT_COLORS.length],
+        weight: 3,
+        opacity: 0.85,
+      }).addTo(map);
+      map.fitBounds(trackLine.getBounds().pad(0.1));
+
+      const end = coords[coords.length - 1];
+      boatMarker = L.circleMarker(end, {
+        radius: 6,
+        color: BOAT_COLORS[idx % BOAT_COLORS.length],
+        fillColor: '#fff',
+        fillOpacity: 1,
+        weight: 2,
+      }).addTo(map);
+    }
+
+    function updateQuickStats(idx) {
+      if (!currentRaceTracks[idx]) return;
+      const speedData = generateSpeedData(120);
+      const maxK = Math.max(...speedData);
+      const avgK = speedData.reduce((a, b) => a + b, 0) / speedData.length;
+
+      document.getElementById('mq-speed').textContent = speedData[0].toFixed(1);
+      document.getElementById('mq-max').textContent = maxK.toFixed(1);
+      document.getElementById('mq-avg').textContent = avgK.toFixed(1);
+    }
+
+    function generateSpeedData(count) {
+      const speeds = [];
+      for (let i = 0; i < count; i++) {
+        const base = 4 + Math.sin(i / 15) * 1.5 + Math.random() * 0.8;
+        const gust = Math.sin(i / 3) > 0.8 ? 2 : 0;
+        speeds.push(Math.round((base + gust) * 10) / 10);
+      }
+      return speeds;
+    }
+
+    function drawMobileChart() {
+      const canvas = document.getElementById('mobile-chart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const w = rect.width - 28;
+      const h = 140;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.scale(dpr, dpr);
+
+      const data = generateSpeedData(120);
+      const pad = { top: 8, bottom: 20, left: 8, right: 8 };
+      const cw = w - pad.left - pad.right;
+      const ch = h - pad.top - pad.bottom;
+      const maxV = Math.max(...data, 2);
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = 'rgba(71, 85, 105, 0.15)';
+      ctx.lineWidth = 1;
+      for (let k = 0; k <= 3; k++) {
+        const y = pad.top + (k / 3) * ch;
+        ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(w - pad.right, y); ctx.stroke();
+      }
+
+      // Area
+      ctx.beginPath();
+      ctx.moveTo(pad.left, pad.top + ch);
+      for (let i = 0; i < data.length; i++) {
+        const x = pad.left + (i / (data.length - 1)) * cw;
+        const y = pad.top + ch - (data[i] / maxV) * ch;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(pad.left + cw, pad.top + ch);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(29, 78, 216, 0.08)';
+      ctx.fill();
+
+      // Line
+      const color = BOAT_COLORS[activeTrackIdx % BOAT_COLORS.length];
+      ctx.beginPath();
+      for (let i = 0; i < data.length; i++) {
+        const x = pad.left + (i / (data.length - 1)) * cw;
+        const y = pad.top + ch - (data[i] / maxV) * ch;
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Dot
+      const dotIdx = Math.min(playbackIdx, data.length - 1);
+      const dx = pad.left + (dotIdx / (data.length - 1)) * cw;
+      const dy = pad.top + ch - (data[dotIdx] / maxV) * ch;
+      ctx.beginPath(); ctx.arc(dx, dy, 4, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    function updateMobilePlayback() {
+      const t = Math.floor(playbackIdx * 5);
+      const mins = Math.floor(t / 60);
+      const secs = t % 60;
+      document.getElementById('m-time').textContent =
+        String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+      drawMobileChart();
+    }
+
+    function toggleMobilePlayback() {
+      const btn = document.getElementById('m-play-btn');
+      if (playbackTimer) {
+        clearInterval(playbackTimer);
+        playbackTimer = null;
+        btn.textContent = '▶';
+        return;
+      }
+      btn.textContent = '⏸';
+      playbackTimer = setInterval(() => {
+        const slider = document.getElementById('m-slider');
+        playbackIdx++;
+        if (playbackIdx > 100) {
+          clearInterval(playbackTimer);
+          playbackTimer = null;
+          btn.textContent = '▶';
+          playbackIdx = 0;
+          slider.value = 0;
+          updateMobilePlayback();
+          return;
+        }
+        slider.value = playbackIdx;
+        updateMobilePlayback();
+      }, 100);
+    }
+
+    // ── Init ──
+    loadDashboard();
+
+    window.addEventListener('resize', () => {
+      if (map) map.invalidateSize();
+    });
+  </script>
+</body>
+</html>

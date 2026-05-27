@@ -1,170 +1,372 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Regatta Screen — Inloggen</title>
-  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Regatta Screen — Nautisch (licht)</title>
+  <style>
+    :root {
+      --bg:       oklch(97% 0.008 85);
+      --surface:  oklch(100% 0 0);
+      --fg:       oklch(18% 0.03 260);
+      --muted:    oklch(48% 0.025 260);
+      --border:   oklch(88% 0.015 85);
+      --accent:   oklch(42% 0.14 260);
+      --accent-light: oklch(75% 0.08 260);
+      --green:    oklch(60% 0.14 145);
+      --red:      oklch(55% 0.18 25);
 
-<div id="login-page">
-  <div class="login-card">
+      --font-display: 'Iowan Old Style', 'Charter', Georgia, serif;
+      --font-body:    -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+      --font-mono:    'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
 
-    <div class="login-logo">
-      <!-- Sailboat icon -->
-      <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="44" height="44" rx="10" fill="#0f172a"/>
-        <path d="M22 8 L22 34" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
-        <path d="M22 10 L10 30 L22 30 Z" fill="#3b82f6" fill-opacity=".85"/>
-        <path d="M22 14 L34 30 L22 30 Z" fill="#22c55e" fill-opacity=".85"/>
-        <path d="M8 36 L36 36" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-      <div class="brand">
-        <span class="brand-name">Regatta Screen</span>
-        <span class="brand-tagline">Race track &amp; analyse</span>
-      </div>
-    </div>
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent); cursor: pointer; }
+    a:hover { text-decoration: underline; }
 
-    <form id="login-form" novalidate>
-      <div id="login-error"></div>
-
-      <div class="field">
-        <label for="email">E-mailadres</label>
-        <input
-          type="email"
-          id="email"
-          name="email"
-          autocomplete="email"
-          placeholder="jouw@email.nl"
-          required
-        />
-      </div>
-
-      <div class="field">
-        <label for="password">Wachtwoord</label>
-        <input
-          type="password"
-          id="password"
-          name="password"
-          autocomplete="current-password"
-          placeholder="••••••••"
-          required
-        />
-      </div>
-
-      <button type="submit" class="btn btn-primary" id="submit-btn" style="width:100%;margin-top:4px;">
-        <span id="submit-label">Inloggen</span>
-        <span id="submit-spinner" class="spinner" style="display:none;"></span>
-      </button>
-    </form>
-
-    <div class="login-toggle">
-      <span id="toggle-text">Nog geen account?</span>
-      <button type="button" id="toggle-btn">Registreren</button>
-    </div>
-
-  </div>
-</div>
-
-<!-- Toast container -->
-<div id="toast-container"></div>
-
-<script>
-  const API = 'https://regatta.fhettinga.nl/api';
-
-  // ── Redirect if already logged in ────────────────────────────────────────
-  if (localStorage.getItem('regatta_token')) {
-    window.location.replace('dashboard.html');
-  }
-
-  // ── State ─────────────────────────────────────────────────────────────────
-  let isRegisterMode = false;
-
-  const form       = document.getElementById('login-form');
-  const emailInput = document.getElementById('email');
-  const passInput  = document.getElementById('password');
-  const submitBtn  = document.getElementById('submit-btn');
-  const submitLabel   = document.getElementById('submit-label');
-  const submitSpinner = document.getElementById('submit-spinner');
-  const errorBox   = document.getElementById('login-error');
-  const toggleBtn  = document.getElementById('toggle-btn');
-  const toggleText = document.getElementById('toggle-text');
-
-  function setMode(register) {
-    isRegisterMode = register;
-    submitLabel.textContent    = register ? 'Registreren' : 'Inloggen';
-    toggleBtn.textContent      = register ? 'Inloggen' : 'Registreren';
-    toggleText.textContent     = register ? 'Al een account?' : 'Nog geen account?';
-    passInput.autocomplete     = register ? 'new-password' : 'current-password';
-    hideError();
-  }
-
-  toggleBtn.addEventListener('click', () => setMode(!isRegisterMode));
-
-  function showError(msg) {
-    errorBox.style.display = 'block';
-    errorBox.textContent = msg;
-  }
-
-  function hideError() {
-    errorBox.style.display = 'none';
-    errorBox.textContent = '';
-  }
-
-  function setLoading(loading) {
-    submitBtn.disabled = loading;
-    submitSpinner.style.display = loading ? 'inline-block' : 'none';
-  }
-
-  // ── Form submit ───────────────────────────────────────────────────────────
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    hideError();
-
-    const email    = emailInput.value.trim();
-    const password = passInput.value;
-
-    if (!email) { showError('Voer een e-mailadres in.'); return; }
-    if (!password) { showError('Voer een wachtwoord in.'); return; }
-    if (isRegisterMode && password.length < 6) {
-      showError('Wachtwoord moet minimaal 6 tekens bevatten.');
-      return;
+    .auth-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background:
+        linear-gradient(135deg, var(--bg) 0%, var(--surface) 100%);
     }
 
-    setLoading(true);
+    .auth-card {
+      width: 100%;
+      max-width: 400px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 40px 32px 32px;
+      box-shadow: 0 4px 24px rgba(0,10,30,0.06);
+    }
 
-    const endpoint = isRegisterMode ? '/auth/register' : '/auth/login';
+    .auth-card .brand {
+      text-align: center;
+      margin-bottom: 32px;
+    }
 
-    try {
-      const res = await fetch(API + endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+    .auth-card .brand svg {
+      width: 48px;
+      height: 48px;
+      margin-bottom: 14px;
+    }
 
-      const data = await res.json();
+    .auth-card .brand h1 {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--fg);
+    }
 
-      if (!res.ok) {
-        showError(data.error || 'Er is een fout opgetreden.');
-        setLoading(false);
+    .auth-card .brand p {
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .input {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--fg);
+      font-family: var(--font-body);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .input:focus { border-color: var(--accent); }
+    .input::placeholder { color: oklch(75% 0.01 260); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 11px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-top: 8px;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .btn-primary:hover { background: oklch(38% 0.14 260); }
+    .btn-primary:disabled { opacity: 0.5; cursor: default; }
+
+    .toggle-mode {
+      text-align: center;
+      margin-top: 18px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .error-msg {
+      background: color-mix(in oklch, var(--red), transparent 88%);
+      color: var(--red);
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .success-msg {
+      background: color-mix(in oklch, var(--green), transparent 88%);
+      color: var(--green);
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Hero sidebar (desktop) ── */
+    .hero-section {
+      flex: 1;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 48px;
+    }
+
+    .hero-section .hero-content {
+      max-width: 420px;
+    }
+
+    .hero-section .hero-content h2 {
+      font-family: var(--font-display);
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+
+    .hero-section .hero-content p {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .hero-section .feature-list {
+      margin-top: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .hero-section .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .hero-section .feature-item svg {
+      width: 20px; height: 20px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    @media (min-width: 900px) {
+      .auth-page { gap: 0; }
+      .hero-section { display: flex; }
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-card">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" fill="none" stroke="var(--accent)" stroke-width="1.5">
+          <path d="M16 4L6 22h20L16 4z" fill="color-mix(in oklch, var(--accent), transparent 85%)"/>
+          <path d="M16 22v7"/>
+          <path d="M11 29h10"/>
+          <path d="M16 4v-2" stroke-width="2"/>
+        </svg>
+        <h1>Regatta Screen</h1>
+        <p>Race track &amp; analyse</p>
+      </div>
+
+      <div class="error-msg" id="error-msg"></div>
+      <div class="success-msg" id="success-msg"></div>
+
+      <form id="auth-form" autocomplete="on">
+        <div class="form-group">
+          <label for="email">E-mailadres</label>
+          <input type="email" id="email" class="input" placeholder="jouw@email.nl" required autocomplete="email" />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Wachtwoord</label>
+          <input type="password" id="password" class="input" placeholder="••••••••" required minlength="6" autocomplete="current-password" />
+        </div>
+
+        <div class="form-group" id="password-confirm-group" style="display:none">
+          <label for="password-confirm">Bevestig wachtwoord</label>
+          <input type="password" id="password-confirm" class="input" placeholder="••••••••" autocomplete="new-password" />
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="submit-btn">
+          <span id="btn-text">Inloggen</span>
+        </button>
+      </form>
+
+      <div class="toggle-mode">
+        <span id="toggle-text">Nog geen account?</span>
+        <a id="toggle-link">Registreren</a>
+      </div>
+    </div>
+
+    <div class="hero-section">
+      <div class="hero-content">
+        <h2>Koers uitzetten,<br/>prestaties meten</h2>
+        <p>Laad je GPX-track, bekijk de route op de kaart en vergelijk je snelheid met andere boten in dezelfde wedstrijd.</p>
+        <div class="feature-list">
+          <div class="feature-item">
+            <svg viewBox="0 0 20 20" fill="none" stroke="var(--accent)" stroke-width="1.5"><circle cx="10" cy="10" r="8"/><path d="M10 6v4l3 3"/></svg>
+            <span>Interactieve race replay met tack-analyse</span>
+          </div>
+          <div class="feature-item">
+            <svg viewBox="0 0 20 20" fill="none" stroke="var(--accent)" stroke-width="1.5"><path d="M2 12h4l2-4 2 8 2-4 4 6"/><circle cx="4" cy="16" r="1.5" fill="var(--accent)"/><circle cx="16" cy="16" r="1.5" fill="var(--accent)"/></svg>
+            <span>Snelheids- en VMG-grafieken</span>
+          </div>
+          <div class="feature-item">
+            <svg viewBox="0 0 20 20" fill="none" stroke="var(--accent)" stroke-width="1.5"><rect x="3" y="4" width="14" height="12" rx="2"/><path d="M7 4v12"/><path d="M13 4v12"/></svg>
+            <span>Vergelijk tracks met andere boten</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('auth-form');
+    const email = document.getElementById('email');
+    const password = document.getElementById('password');
+    const passwordConfirm = document.getElementById('password-confirm');
+    const passwordConfirmGroup = document.getElementById('password-confirm-group');
+    const submitBtn = document.getElementById('submit-btn');
+    const btnText = document.getElementById('btn-text');
+    const errorMsg = document.getElementById('error-msg');
+    const successMsg = document.getElementById('success-msg');
+    const toggleLink = document.getElementById('toggle-link');
+    const toggleText = document.getElementById('toggle-text');
+    let isRegister = false;
+
+    toggleLink.addEventListener('click', () => {
+      isRegister = !isRegister;
+      passwordConfirmGroup.style.display = isRegister ? 'block' : 'none';
+      btnText.textContent = isRegister ? 'Account aanmaken' : 'Inloggen';
+      toggleText.textContent = isRegister ? 'Al een account?' : 'Nog geen account?';
+      toggleLink.textContent = isRegister ? 'Inloggen' : 'Registreren';
+      passwordConfirm.required = isRegister;
+      errorMsg.style.display = 'none';
+      successMsg.style.display = 'none';
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.style.display = 'none';
+      successMsg.style.display = 'none';
+
+      if (isRegister && password.value !== passwordConfirm.value) {
+        errorMsg.textContent = 'Wachtwoorden komen niet overeen.';
+        errorMsg.style.display = 'block';
         return;
       }
 
-      // Save credentials
-      localStorage.setItem('regatta_token', data.token);
-      localStorage.setItem('regatta_email', data.email);
+      submitBtn.disabled = true;
+      btnText.innerHTML = '<span class="spinner"></span> Bezig...';
 
-      // Redirect to dashboard
-      window.location.replace('dashboard.html');
+      try {
+        const endpoint = isRegister ? '/auth/register' : '/auth/login';
+        const data = await fetch('https://regatta.fhettinga.nl/api' + endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.value.trim(), password: password.value }),
+        }).then(r => r.json());
 
-    } catch (err) {
-      showError('Verbindingsfout — controleer je internetverbinding.');
-      setLoading(false);
+        if (data.token) {
+          localStorage.setItem('regatta_token', data.token);
+          localStorage.setItem('regatta_email', data.email || email.value.trim());
+          successMsg.textContent = isRegister ? 'Account aangemaakt! Je wordt doorgestuurd...' : 'Ingelogd!';
+          successMsg.style.display = 'block';
+          setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
+        } else {
+          errorMsg.textContent = data.error || 'Mislukt.';
+          errorMsg.style.display = 'block';
+          submitBtn.disabled = false;
+          btnText.textContent = isRegister ? 'Account aanmaken' : 'Inloggen';
+        }
+      } catch (err) {
+        errorMsg.textContent = 'Geen verbinding met de server.';
+        errorMsg.style.display = 'block';
+        submitBtn.disabled = false;
+        btnText.textContent = isRegister ? 'Account aanmaken' : 'Inloggen';
+      }
+    });
+
+    if (localStorage.getItem('regatta_token')) {
+      window.location.href = 'dashboard.html';
     }
-  });
-</script>
-
+  </script>
 </body>
 </html>

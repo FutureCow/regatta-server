@@ -1,806 +1,373 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Regatta Screen — Dashboard</title>
-  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Regatta Screen — Wedstrijden</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    .dashboard {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 24px 80px;
+      width: 100%;
+    }
+
+    .dashboard h2 {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .dashboard .subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 28px;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      box-shadow: 0 2px 12px rgba(0,10,30,0.04);
+    }
+
+    .stat-card .stat-val {
+      font-family: var(--font-mono);
+      font-size: 28px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+
+    .stat-card .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .race-list-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .race-list-header .card-title { margin: 0; }
+
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .filter-bar .input {
+      width: 200px;
+      max-width: 100%;
+      padding: 7px 12px;
+      font-size: 13px;
+    }
+
+    .race-item {
+      display: flex;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.1s;
+      gap: 16px;
+    }
+    .race-item:hover {
+      background: color-mix(in oklch, var(--border), transparent 70%);
+      margin: 0 -14px;
+      padding: 14px;
+      border-radius: var(--radius-sm);
+    }
+    .race-item:last-child { border-bottom: none; }
+
+    .race-item .race-info { flex: 1; min-width: 0; }
+    .race-item .race-name {
+      font-weight: 600;
+      font-size: 15px;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .race-item .race-meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .race-item .race-stats {
+      display: flex;
+      gap: 20px;
+      flex-shrink: 0;
+    }
+
+    .race-item .race-stat { text-align: right; }
+    .race-item .race-stat .val {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .race-item .race-stat .lbl {
+      font-size: 10px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .race-item .race-arrow {
+      color: var(--muted);
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty-state svg { width: 48px; height: 48px; margin-bottom: 16px; opacity: 0.4; }
+    .empty-state h3 { font-size: 18px; font-weight: 600; margin-bottom: 6px; color: var(--fg); }
+    .empty-state p { font-size: 14px; max-width: 360px; margin: 0 auto; }
+
+    .loading-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .loading-state .spinner {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-bottom: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-state p { font-size: 14px; }
+
+    /* ── Enhanced mobile ── */
+    .mobile-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      z-index: 200;
+      padding: 6px 0 env(safe-area-inset-bottom, 6px) 0;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+
+    .mobile-nav-inner {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    .mobile-nav a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 8px 12px;
+      font-size: 10px;
+      color: var(--muted);
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+      transition: color 0.15s;
+      min-width: 56px;
+    }
+    .mobile-nav a.active {
+      color: var(--accent);
+    }
+    .mobile-nav a svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    @media (max-width: 640px) {
+      .dashboard { padding: 16px 14px 80px; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .race-item { flex-wrap: wrap; }
+      .race-item .race-stats { width: 100%; justify-content: space-around; margin-top: 6px; }
+      .race-item .race-arrow { display: none; }
+      .mobile-nav { display: block; }
+      .app-header .nav { display: none; }
+    }
+  </style>
 </head>
 <body>
-<div id="dashboard-page">
+  <header class="app-header"></header>
+  <div class="dashboard">
+    <h2>Wedstrijden</h2>
+    <p class="subtitle" id="subtitle">Je race-track data</p>
 
-  <header class="header">
-    <div class="header-brand">
-      <svg width="32" height="32" viewBox="0 0 44 44" fill="none">
-        <rect width="44" height="44" rx="10" fill="#0f172a"/>
-        <path d="M22 8 L22 34" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
-        <path d="M22 10 L10 30 L22 30 Z" fill="#3b82f6" fill-opacity=".85"/>
-        <path d="M22 14 L34 30 L22 30 Z" fill="#22c55e" fill-opacity=".85"/>
-        <path d="M8 36 L36 36" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/>
-      </svg>
-      Regatta Screen
+    <div class="stats-row" id="stats-row">
+      <div class="stat-card">
+        <div class="stat-val" id="stat-races">—</div>
+        <div class="stat-label">Wedstrijden</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-tracks">—</div>
+        <div class="stat-label">GPX-tracks</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-distance">—</div>
+        <div class="stat-label">Totaal afstand (nm)</div>
+      </div>
     </div>
-    <div class="header-user">
-      <span id="user-email">—</span>
-      <button class="btn btn-ghost btn-sm" id="logout-btn">Uitloggen</button>
-    </div>
-  </header>
 
-  <div class="tabs">
-    <button class="tab-btn active" data-tab="tracks">Mijn tracks</button>
-    <button class="tab-btn" data-tab="races">Wedstrijden</button>
-    <button class="tab-btn tab-admin" data-tab="admin" style="display:none">Beheer</button>
+    <div class="card">
+      <div class="race-list-header">
+        <span class="card-title">Race overzicht</span>
+        <div class="filter-bar">
+          <input class="input" id="search-input" placeholder="Zoek wedstrijd…" />
+        </div>
+      </div>
+
+      <div id="race-list">
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Wedstrijden laden…</p>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <main class="dashboard-content">
-
-    <!-- ── Tracks ─────────────────────────────────────────────────────────── -->
-    <div id="tab-tracks">
-      <div id="tracks-loading" class="loading-row"><span class="spinner"></span><span>Tracks laden…</span></div>
-      <div id="tracks-error" style="display:none;color:#fecaca;padding:20px 0;"></div>
-      <div id="tracks-empty" style="display:none;">
-        <div class="empty-state">
-          <svg width="64" height="64" viewBox="0 0 64 64" fill="none"><path d="M32 10 L32 50" stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/><path d="M32 12 L14 40 L32 40 Z" fill="#94a3b8"/><path d="M32 18 L50 40 L32 40 Z" fill="#94a3b8"/><path d="M10 54 L54 54" stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/></svg>
-          <h3>Nog geen tracks opgeslagen</h3>
-          <p>Start een race in de Regatta Screen app en je tracks verschijnen hier automatisch.</p>
-        </div>
-      </div>
-      <div id="race-grid" class="race-grid" style="display:none;"></div>
+  <!-- Mobile bottom nav -->
+  <nav class="mobile-nav">
+    <div class="mobile-nav-inner">
+      <a href="dashboard.html" class="active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span>Wedstrijden</span>
+      </a>
+      <a href="race.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 3"/></svg>
+        <span>Race</span>
+      </a>
+      <a href="race-compare.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 4h4v4"/><path d="M20 4L9 15"/><path d="M8 20H4v-4"/><path d="M4 20l7-7"/></svg>
+        <span>Vergelijk</span>
+      </a>
     </div>
+  </nav>
 
-    <!-- ── Wedstrijden ────────────────────────────────────────────────────── -->
-    <div id="tab-races" style="display:none;">
-      <div id="races-loading" class="loading-row"><span class="spinner"></span><span>Laden…</span></div>
-      <div id="races-empty" style="display:none;">
-        <div class="empty-state"><h3>Geen wedstrijden</h3><p>Er zijn nog geen reeksen of wedstrijden aangemaakt.</p></div>
-      </div>
-      <div id="races-content" style="display:none;"></div>
-    </div>
+  <script src="script.js"></script>
+  <script>
+    requireAuth();
+    renderHeader('dashboard');
 
-    <!-- ── Beheer (admin) ─────────────────────────────────────────────────── -->
-    <div id="tab-admin" style="display:none;">
+    let races = [];
+    let tracks = [];
 
-      <!-- Reeks aanmaken -->
-      <div class="admin-card">
-        <h3>Reeks aanmaken</h3>
-        <p class="admin-hint">Een reeks groepeert meerdere wedstrijden, bijv. een hele zomerse woensdagavond competitie.</p>
-        <div id="series-form-error" class="form-error" style="display:none;"></div>
-        <div class="field">
-          <label for="series-name">Naam reeks</label>
-          <input type="text" id="series-name" placeholder="bijv. Woensdagavond competitie" />
-        </div>
-        <div class="field">
-          <label for="series-season">Seizoen</label>
-          <input type="text" id="series-season" placeholder="bijv. Zomer 2026" />
-        </div>
-        <div class="field">
-          <label for="series-desc">Omschrijving (optioneel)</label>
-          <input type="text" id="series-desc" placeholder="bijv. Klasse A, start 19:00" />
-        </div>
-        <button class="btn btn-primary" id="create-series-btn">
-          <span id="create-series-label">Reeks aanmaken</span>
-          <span id="create-series-spinner" class="spinner" style="display:none;"></span>
-        </button>
-      </div>
+    async function loadData() {
+      try {
+        [races, tracks] = await Promise.all([
+          apiGet('/races') || [],
+          apiGet('/tracks') || [],
+        ]);
 
-      <!-- Losse wedstrijd aanmaken -->
-      <div class="admin-card" style="margin-top:16px;">
-        <h3>Losse wedstrijd aanmaken</h3>
-        <p class="admin-hint">Eenmalige wedstrijd, optioneel gekoppeld aan een reeks.</p>
-        <div id="race-form-error" class="form-error" style="display:none;"></div>
-        <div class="field">
-          <label for="race-name">Naam</label>
-          <input type="text" id="race-name" placeholder="bijv. Wedstrijd 1" />
-        </div>
-        <div class="field">
-          <label for="race-series">Reeks (optioneel)</label>
-          <select id="race-series">
-            <option value="">— Geen reeks —</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="race-date">Datum</label>
-          <input type="date" id="race-date" />
-        </div>
-        <div class="field">
-          <label for="race-desc">Omschrijving (optioneel)</label>
-          <input type="text" id="race-desc" placeholder="bijv. Starttijd 10:00" />
-        </div>
-        <button class="btn btn-primary" id="create-race-btn">
-          <span id="create-race-label">Wedstrijd aanmaken</span>
-          <span id="create-race-spinner" class="spinner" style="display:none;"></span>
-        </button>
-      </div>
+        if (!Array.isArray(races)) races = [];
+        if (!Array.isArray(tracks)) tracks = [];
 
-      <!-- Overzicht reeksen + wedstrijden -->
-      <div style="margin-top:32px;">
-        <h3 style="margin-bottom:12px;font-size:1rem;color:var(--text-muted);">Bestaande reeksen</h3>
-        <div id="admin-series-list"></div>
-      </div>
+        document.getElementById('stat-races').textContent = races.length;
+        document.getElementById('stat-tracks').textContent = tracks.length;
+        document.getElementById('stat-distance').textContent = '—';
 
-    </div>
-  </main>
-</div>
+        const subtitle = document.getElementById('subtitle');
+        if (races.length > 0) {
+          subtitle.textContent = races.length + ' wedstrijd' + (races.length !== 1 ? 'en' : '') + ' gevonden';
+        }
 
-<div id="toast-container"></div>
-
-<script>
-const API   = 'https://regatta.fhettinga.nl/api';
-const token = localStorage.getItem('regatta_token');
-const email = localStorage.getItem('regatta_email');
-let isAdmin = false;
-
-if (!token) window.location.replace('index.html');
-document.getElementById('user-email').textContent = email || '—';
-
-// ── Toast ─────────────────────────────────────────────────────────────────
-function showToast(msg, type = 'info') {
-  const el = document.createElement('div');
-  el.className = `toast toast-${type}`;
-  el.textContent = msg;
-  document.getElementById('toast-container').appendChild(el);
-  setTimeout(() => el.remove(), 4000);
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────
-function escapeHtml(s) {
-  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
-}
-function formatDuration(s) {
-  if (s == null) return '—';
-  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = Math.floor(s%60);
-  return h > 0 ? `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
-               : `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
-}
-function formatDistance(m) {
-  return m == null ? '—' : m >= 1000 ? (m/1000).toFixed(2)+' km' : Math.round(m)+' m';
-}
-function formatSpeed(k) { return k != null ? k.toFixed(1)+' kts' : '—'; }
-function formatDate(iso) {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  return d.toLocaleDateString('nl-NL',{day:'numeric',month:'long',year:'numeric'})
-    +' '+d.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
-}
-function formatRaceDate(str) {
-  if (!str) return '—';
-  const d = new Date(str);
-  return d.toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-}
-function degToCompass(deg) {
-  const dirs = ['N','NNO','NO','ONO','O','OZO','ZO','ZZO','Z','ZZW','ZW','WZW','W','WNW','NW','NNW'];
-  return dirs[Math.round(deg/22.5)%16];
-}
-function windArrowSvg(deg, size=16) {
-  return `<svg width="${size}" height="${size}" viewBox="0 0 16 16" fill="none" style="transform:rotate(${deg}deg);display:block;">
-    <path d="M8 2 L8 14" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
-    <path d="M5 5 L8 2 L11 5" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>`;
-}
-async function apiFetch(path, opts = {}) {
-  return fetch(API + path, { ...opts, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(opts.headers||{}) } });
-}
-
-// ── Logout ────────────────────────────────────────────────────────────────
-document.getElementById('logout-btn').addEventListener('click', () => {
-  localStorage.clear(); window.location.replace('index.html');
-});
-
-// ── Tabs ──────────────────────────────────────────────────────────────────
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    ['tracks','races','admin'].forEach(t => document.getElementById(`tab-${t}`).style.display = 'none');
-    const tab = btn.dataset.tab;
-    document.getElementById(`tab-${tab}`).style.display = 'block';
-    if (tab === 'races') loadRaces();
-    if (tab === 'admin') loadAdminData();
-  });
-});
-
-// ── Auth/me ───────────────────────────────────────────────────────────────
-async function checkMe() {
-  const res = await apiFetch('/auth/me');
-  if (res.status === 401) { localStorage.clear(); window.location.replace('index.html'); return; }
-  const data = await res.json();
-  isAdmin = !!data.isAdmin;
-  if (isAdmin) document.querySelector('.tab-admin').style.display = 'inline-block';
-}
-
-// ── Tab: Tracks ───────────────────────────────────────────────────────────
-async function loadTracks() {
-  try {
-    const res = await apiFetch('/tracks');
-    if (res.status === 401) { localStorage.clear(); window.location.replace('index.html'); return; }
-    const tracks = await res.json();
-    document.getElementById('tracks-loading').style.display = 'none';
-    if (!tracks.length) { document.getElementById('tracks-empty').style.display = 'block'; return; }
-    document.getElementById('race-grid').style.display = 'grid';
-    renderTracks(tracks);
-  } catch (err) {
-    document.getElementById('tracks-loading').style.display = 'none';
-    document.getElementById('tracks-error').style.display = 'block';
-    document.getElementById('tracks-error').textContent = 'Kon tracks niet laden: ' + err.message;
-  }
-}
-
-function renderTracks(tracks) {
-  const grid = document.getElementById('race-grid');
-  grid.innerHTML = '';
-  for (const t of tracks) {
-    const windHtml = t.wind_direction_deg != null
-      ? `<div class="stat-item"><span class="stat-label">Wind</span>
-           <div class="wind-stat"><div class="wind-stat-arrow">${windArrowSvg(t.wind_direction_deg,14)}</div>
-           <span class="stat-value">${Math.round(t.wind_direction_deg)}° ${degToCompass(t.wind_direction_deg)}</span></div></div>`
-      : '';
-    const card = document.createElement('div');
-    card.className = 'race-card';
-    card.innerHTML = `
-      <div class="race-card-header">
-        <div><div class="race-card-title">${escapeHtml(t.name)}</div>
-        <div class="race-card-date">${formatDate(t.recorded_at)}</div></div>
-        <button class="race-card-delete" data-id="${t.id}" title="Verwijderen">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-            <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
-          </svg>
-        </button>
-      </div>
-      <div class="race-stats">
-        <div class="stat-item"><span class="stat-label">Duur</span><span class="stat-value">${formatDuration(t.duration_seconds)}</span></div>
-        <div class="stat-item"><span class="stat-label">Afstand</span><span class="stat-value">${formatDistance(t.distance_meters)}</span></div>
-        <div class="stat-item"><span class="stat-label">Max snelheid</span><span class="stat-value accent">${formatSpeed(t.max_speed_knots)}</span></div>
-        ${windHtml}
-      </div>`;
-    card.addEventListener('click', e => { if (!e.target.closest('.race-card-delete')) window.location.href = `race.html?id=${t.id}`; });
-    card.querySelector('.race-card-delete').addEventListener('click', e => { e.stopPropagation(); deleteTrack(t.id, t.name, card); });
-    grid.appendChild(card);
-  }
-}
-
-async function deleteTrack(id, name, el) {
-  if (!confirm(`Weet je zeker dat je "${name}" wilt verwijderen?`)) return;
-  const res = await apiFetch(`/tracks/${id}`, { method: 'DELETE' });
-  if (!res.ok) { showToast((await res.json()).error || 'Verwijderen mislukt.', 'error'); return; }
-  el.style.transition = 'opacity .2s, transform .2s'; el.style.opacity = '0'; el.style.transform = 'scale(.95)';
-  setTimeout(() => { el.remove(); if (!document.getElementById('race-grid').children.length) { document.getElementById('race-grid').style.display = 'none'; document.getElementById('tracks-empty').style.display = 'block'; } }, 200);
-  showToast('Track verwijderd.', 'success');
-}
-
-// ── Tab: Wedstrijden ──────────────────────────────────────────────────────
-async function loadRaces() {
-  document.getElementById('races-loading').style.display = 'flex';
-  document.getElementById('races-empty').style.display = 'none';
-  document.getElementById('races-content').style.display = 'none';
-
-  const [seriesRes, racesRes] = await Promise.all([
-    apiFetch('/series'),
-    apiFetch('/races'),
-  ]);
-  const seriesList = seriesRes.ok ? await seriesRes.json() : [];
-  const racesList  = racesRes.ok  ? await racesRes.json()  : [];
-
-  // Losse wedstrijden: geen series_id (series_id is nu aanwezig in de response)
-  const standalone = racesList.filter(r => !r.series_id);
-
-  document.getElementById('races-loading').style.display = 'none';
-
-  if (!seriesList.length && !standalone.length) {
-    document.getElementById('races-empty').style.display = 'block'; return;
-  }
-
-  const content = document.getElementById('races-content');
-  content.innerHTML = '';
-  content.style.display = 'block';
-
-  // Reeksen
-  for (const s of seriesList) {
-    const section = document.createElement('div');
-    section.className = 'series-section';
-    section.innerHTML = `
-      <div class="series-header">
-        <div>
-          <span class="series-name">${escapeHtml(s.name)}</span>
-          ${s.season ? `<span class="series-season">${escapeHtml(s.season)}</span>` : ''}
-        </div>
-        <span class="series-count">${s.race_count} wedstrijd(en)</span>
-      </div>
-      ${s.description ? `<p class="series-desc">${escapeHtml(s.description)}</p>` : ''}
-      <div id="series-view-${s.id}">
-        <div class="loading-row" style="padding:12px 0;"><span class="spinner" style="width:16px;height:16px;border-width:2px;"></span><span style="font-size:.85rem;">Laden…</span></div>
-      </div>`;
-    content.appendChild(section);
-    loadSeriesView(s.id);
-  }
-
-  // Losse wedstrijden
-  if (standalone.length) {
-    const section = document.createElement('div');
-    section.className = 'series-section';
-    section.innerHTML = `<div class="series-header"><div><span class="series-name">Overige wedstrijden</span></div></div>`;
-    const list = document.createElement('div');
-    list.className = 'series-races';
-    for (const r of standalone) renderStandaloneRaceRow(r, list);
-    section.appendChild(list);
-    content.appendChild(section);
-  }
-}
-
-// Laadt reeksklassen + wedstrijden voor een reeks in de Wedstrijden-tab
-async function loadSeriesView(seriesId) {
-  const container = document.getElementById(`series-view-${seriesId}`);
-  if (!container) return;
-
-  const [classesRes, seriesRes] = await Promise.all([
-    apiFetch(`/series/${seriesId}/classes`),
-    apiFetch(`/series/${seriesId}`),
-  ]);
-  const seriesClasses = classesRes.ok ? await classesRes.json() : [];
-  const seriesData    = seriesRes.ok  ? await seriesRes.json()  : { races: [] };
-  container.innerHTML = '';
-
-  // Toon reeksklassen met resultaten per wedstrijd
-  if (seriesClasses.length) {
-    for (const sc of seriesClasses) {
-      const classEl = document.createElement('div');
-      classEl.className = 'race-row-expandable';
-      classEl.innerHTML = `
-        <div class="race-row">
-          <div class="race-row-name" style="font-weight:600;">${escapeHtml(sc.name)}</div>
-          <div class="race-row-count">${sc.participant_count} deelnemer(s)</div>
-          <button class="btn btn-secondary btn-sm" data-scid="${sc.id}" data-sid="${seriesId}">Resultaten</button>
-        </div>
-        <div class="classes-view-panel" id="scview-${sc.id}" style="display:none;"></div>`;
-      classEl.querySelector('button').addEventListener('click', () => toggleSeriesClassResults(seriesId, sc.id));
-      container.appendChild(classEl);
-    }
-  }
-
-  // Toon losse wedstrijden (zonder reeksklasse — eigen klassen)
-  const hasOwnClasses = seriesData.races.some(r => r.participant_count > 0);
-  if (seriesData.races.length) {
-    const racesWrap = document.createElement('div');
-    racesWrap.style.marginTop = seriesClasses.length ? '8px' : '0';
-    for (const r of seriesData.races) renderRaceRow(r, racesWrap);
-    container.appendChild(racesWrap);
-  }
-
-  if (!seriesClasses.length && !seriesData.races.length) {
-    container.innerHTML = '<p style="color:var(--text-muted);font-size:.85rem;padding:8px 0;">Nog geen wedstrijden of klassen gepland.</p>';
-  }
-}
-
-async function toggleSeriesClassResults(seriesId, classId) {
-  const panel = document.getElementById(`scview-${classId}`);
-  if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
-  panel.style.display = 'block';
-  panel.innerHTML = '<span style="color:var(--text-muted);font-size:.8rem;">Laden…</span>';
-
-  const res = await apiFetch(`/series/${seriesId}/classes/${classId}/tracks`);
-  const tracks = res.ok ? await res.json() : [];
-  panel.innerHTML = '';
-
-  if (!tracks.length) {
-    panel.innerHTML = '<p style="color:var(--text-muted);font-size:.8rem;">Nog geen deelnemers.</p>'; return;
-  }
-
-  // Groepeer per wedstrijd
-  const byRace = {};
-  for (const t of tracks) {
-    if (!byRace[t.race_id]) byRace[t.race_id] = { name: t.race_name, date: t.race_date, tracks: [] };
-    byRace[t.race_id].tracks.push(t);
-  }
-  for (const [, race] of Object.entries(byRace)) {
-    const header = document.createElement('div');
-    header.style.cssText = 'font-size:.8rem;color:var(--text-muted);padding:6px 8px 2px;font-weight:600;';
-    header.textContent = race.date ? formatRaceDate(race.date) : race.name;
-    panel.appendChild(header);
-
-    const table = document.createElement('div');
-    table.className = 'class-results';
-    race.tracks.forEach((t, i) => {
-      const row = document.createElement('div');
-      row.className = 'class-result-row';
-      row.innerHTML = `
-        <span class="result-pos">${i+1}</span>
-        <span class="result-email">${escapeHtml(t.user_email)}</span>
-        <span class="result-speed">${formatSpeed(t.avg_speed_knots)}</span>
-        <span class="result-dist">${formatDistance(t.distance_meters)}</span>`;
-      table.appendChild(row);
-    });
-    panel.appendChild(table);
-  }
-}
-
-function renderRaceRow(r, container) {
-  const wrap = document.createElement('div');
-  wrap.className = 'race-row-expandable';
-  wrap.innerHTML = `
-    <div class="race-row">
-      <div class="race-row-date">${r.race_date ? formatRaceDate(r.race_date) : '—'}</div>
-      <div class="race-row-name">${escapeHtml(r.name)}${r.description ? ` <span class="race-row-desc">· ${escapeHtml(r.description)}</span>` : ''}</div>
-      <div class="race-row-count">${r.participant_count} deelnemer(s)</div>
-      <button class="btn btn-secondary btn-sm toggle-classes-view-btn" data-race="${r.id}">Klassen</button>
-    </div>
-    <div class="classes-view-panel" id="classes-view-${r.id}" style="display:none;"></div>`;
-  wrap.querySelector('.toggle-classes-view-btn').addEventListener('click', () => toggleRaceClassesView(r.id));
-  container.appendChild(wrap);
-}
-
-function renderStandaloneRaceRow(r, container) { renderRaceRow(r, container); }
-
-async function toggleRaceClassesView(raceId) {
-  const panel = document.getElementById(`classes-view-${raceId}`);
-  if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
-  panel.style.display = 'block';
-  panel.innerHTML = '<span style="color:var(--text-muted);font-size:.8rem;">Laden…</span>';
-
-  const res = await apiFetch(`/races/${raceId}/classes`);
-  const classes = res.ok ? await res.json() : [];
-  panel.innerHTML = '';
-
-  if (!classes.length) {
-    panel.innerHTML = '<p style="color:var(--text-muted);font-size:.8rem;">Nog geen klassen.</p>'; return;
-  }
-
-  for (const c of classes) {
-    const el = document.createElement('div');
-    el.className = 'class-row';
-    el.innerHTML = `<div class="class-info"><span class="class-name">${escapeHtml(c.name)}</span><span class="class-count">${c.participant_count} deelnemer(s)</span></div>`;
-    panel.appendChild(el);
-    if (c.participant_count > 0) {
-      const tracksRes = await apiFetch(`/races/${raceId}/classes/${c.id}/tracks`);
-      if (tracksRes.ok) {
-        const tracks = await tracksRes.json();
-        const table = document.createElement('div');
-        table.className = 'class-results';
-        tracks.forEach((t, i) => {
-          const row = document.createElement('div');
-          row.className = 'class-result-row';
-          row.innerHTML = `<span class="result-pos">${i+1}</span><span class="result-email">${escapeHtml(t.user_email)}</span><span class="result-speed">${formatSpeed(t.avg_speed_knots)}</span><span class="result-dist">${formatDistance(t.distance_meters)}</span>`;
-          table.appendChild(row);
-        });
-        panel.appendChild(table);
+        renderRaces(races);
+      } catch (e) {
+        document.getElementById('race-list').innerHTML =
+          '<div class="empty-state"><p>Kon gegevens niet laden. Probeer opnieuw in te loggen.</p></div>';
       }
     }
-  }
-}
 
-// ── Tab: Beheer ───────────────────────────────────────────────────────────
-let adminSeriesCache = [];
+    function renderRaces(list) {
+      const container = document.getElementById('race-list');
 
-async function loadAdminData() {
-  await loadAdminSeries();
-  updateSeriesSelect();
-}
+      if (!list.length) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <svg viewBox="0 0 28 28" fill="none" stroke="var(--muted)" stroke-width="1.5">
+              <path d="M14 3L6 18h16L14 3z"/>
+              <path d="M14 18v7"/>
+              <path d="M10 25h8"/>
+            </svg>
+            <h3>Nog geen wedstrijden</h3>
+            <p>Zodra je een race-track uploadt via de Regatta Screen app, verschijnt die hier.</p>
+          </div>`;
+        return;
+      }
 
-async function loadAdminSeries() {
-  const res = await apiFetch('/series');
-  adminSeriesCache = res.ok ? await res.json() : [];
-  renderAdminSeries();
-}
+      container.innerHTML = list.map(r => {
+        const name = r.name || r.label || 'Race #' + r.id;
+        const date = fmtDate(r.created_at || r.date);
+        const time = fmtTime(r.created_at);
+        const trackCount = r.track_count || '—';
+        return `
+          <div class="race-item" onclick="openRace(${r.id})">
+            <div class="race-info">
+              <div class="race-name">${escHtml(name)}</div>
+              <div class="race-meta">${date} · ${time}</div>
+            </div>
+            <div class="race-stats">
+              <div class="race-stat">
+                <div class="val">${trackCount}</div>
+                <div class="lbl">boten</div>
+              </div>
+            </div>
+            <div class="race-arrow">→</div>
+          </div>
+        `;
+      }).join('');
+    }
 
-function updateSeriesSelect() {
-  const sel = document.getElementById('race-series');
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">— Geen reeks —</option>';
-  for (const s of adminSeriesCache) {
-    const opt = document.createElement('option');
-    opt.value = s.id; opt.textContent = s.name + (s.season ? ` (${s.season})` : '');
-    sel.appendChild(opt);
-  }
-  sel.value = cur;
-}
+    function escHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
 
-function renderAdminSeries() {
-  const list = document.getElementById('admin-series-list');
-  list.innerHTML = '';
-  if (!adminSeriesCache.length) {
-    list.innerHTML = '<p style="color:var(--text-muted);">Nog geen reeksen.</p>'; return;
-  }
-  for (const s of adminSeriesCache) {
-    const el = document.createElement('div');
-    el.className = 'admin-series-card';
-    el.innerHTML = `
-      <div class="admin-series-header">
-        <div>
-          <strong>${escapeHtml(s.name)}</strong>
-          ${s.season ? `<span class="series-season">${escapeHtml(s.season)}</span>` : ''}
-          <span style="color:var(--text-muted);font-size:.8rem;margin-left:8px;">${s.race_count} wedstrijd(en)</span>
-        </div>
-        <button class="race-card-delete" title="Reeks verwijderen">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
-            <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
-          </svg>
-        </button>
-      </div>
+    function openRace(id) {
+      sessionStorage.setItem('raceId', id);
+      window.location.href = 'race.html';
+    }
 
-      <!-- Reeksklassen (één code per klasse, geldig voor alle wedstrijden) -->
-      <div style="margin:10px 0 4px;font-size:.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);letter-spacing:.05em;">Reeksklassen</div>
-      <div class="admin-series-classes" id="admin-sc-${s.id}">
-        <div class="loading-row" style="padding:4px 0;"><span class="spinner" style="width:12px;height:12px;border-width:2px;"></span></div>
-      </div>
-      <div class="add-race-row" style="margin-top:6px;">
-        <input type="text" class="add-sc-name" placeholder="Naam klasse, bijv. Laser" />
-        <button class="btn btn-secondary btn-sm add-sc-btn">+ Klasse toevoegen</button>
-      </div>
-
-      <!-- Wedstrijden in reeks -->
-      <div style="margin:14px 0 4px;font-size:.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);letter-spacing:.05em;">Wedstrijden</div>
-      <div class="add-race-row">
-        <input type="text" class="add-race-name" placeholder="Naam wedstrijd" />
-        <input type="date" class="add-race-date" />
-        <button class="btn btn-secondary btn-sm add-race-btn">+ Toevoegen</button>
-      </div>
-      <div class="series-races-admin" id="admin-series-races-${s.id}">
-        <div class="loading-row" style="padding:8px 0;"><span class="spinner" style="width:14px;height:14px;border-width:2px;"></span></div>
-      </div>`;
-
-    el.querySelector('.race-card-delete').addEventListener('click', () => deleteSeries(s.id, s.name));
-    el.querySelector('.add-race-btn').addEventListener('click', () => addRaceToSeries(s.id, el));
-    el.querySelector('.add-sc-btn').addEventListener('click', () => addSeriesClass(s.id, el));
-    list.appendChild(el);
-    loadAdminSeriesRaces(s.id);
-    loadAdminSeriesClasses(s.id);
-  }
-}
-
-async function loadAdminSeriesClasses(seriesId) {
-  const res = await apiFetch(`/series/${seriesId}/classes`);
-  const container = document.getElementById(`admin-sc-${seriesId}`);
-  if (!container) return;
-  const classes = res.ok ? await res.json() : [];
-  container.innerHTML = '';
-  if (!classes.length) {
-    container.innerHTML = '<p style="color:var(--text-muted);font-size:.8rem;">Nog geen reeksklassen.</p>'; return;
-  }
-  for (const c of classes) {
-    const row = document.createElement('div');
-    row.className = 'class-row';
-    row.innerHTML = `
-      <div class="class-info">
-        <span class="class-name">${escapeHtml(c.name)}</span>
-        <span class="class-code" title="Klik om te kopiëren">${c.code}</span>
-        <span class="class-count">${c.participant_count} deelnemer(s)</span>
-      </div>
-      <button class="race-card-delete btn-xs" title="Klasse verwijderen">✕</button>`;
-    row.querySelector('.class-code').addEventListener('click', () => {
-      navigator.clipboard.writeText(c.code);
-      showToast(`Code ${c.code} gekopieerd`, 'success');
+    document.getElementById('search-input').addEventListener('input', function() {
+      const q = this.value.toLowerCase();
+      const filtered = races.filter(r => {
+        const name = (r.name || r.label || '').toLowerCase();
+        return name.includes(q);
+      });
+      renderRaces(filtered);
     });
-    row.querySelector('.race-card-delete').addEventListener('click', async () => {
-      if (!confirm(`Reeksklasse "${c.name}" verwijderen?`)) return;
-      await apiFetch(`/series-classes/${c.id}`, { method: 'DELETE' });
-      loadAdminSeriesClasses(seriesId);
-    });
-    container.appendChild(row);
-  }
-}
 
-async function addSeriesClass(seriesId, cardEl) {
-  const input = cardEl.querySelector('.add-sc-name');
-  const name = input.value.trim();
-  if (!name) { showToast('Naam is verplicht.', 'error'); return; }
-  const btn = cardEl.querySelector('.add-sc-btn');
-  btn.disabled = true;
-  const res = await apiFetch(`/series/${seriesId}/classes`, {
-    method: 'POST', body: JSON.stringify({ name }),
-  });
-  btn.disabled = false;
-  if (!res.ok) { showToast((await res.json()).error || 'Aanmaken mislukt.', 'error'); return; }
-  const { code } = await res.json();
-  input.value = '';
-  showToast(`Reeksklasse aangemaakt — code: ${code}`, 'success');
-  loadAdminSeriesClasses(seriesId);
-}
-
-async function loadAdminSeriesRaces(seriesId) {
-  const res = await apiFetch(`/series/${seriesId}`);
-  const container = document.getElementById(`admin-series-races-${seriesId}`);
-  if (!res.ok || !container) return;
-  const data = await res.json();
-  container.innerHTML = '';
-  if (!data.races.length) {
-    container.innerHTML = '<p style="color:var(--text-muted);font-size:.8rem;">Nog geen wedstrijden.</p>'; return;
-  }
-  for (const r of data.races) {
-    const row = document.createElement('div');
-    row.className = 'race-row-expandable';
-    row.innerHTML = `
-      <div class="race-row">
-        <div class="race-row-date">${r.race_date ? formatRaceDate(r.race_date) : '—'}</div>
-        <div class="race-row-name">${escapeHtml(r.name)}</div>
-        <div class="race-row-count">${r.participant_count} deelnemer(s)</div>
-        <button class="btn btn-secondary btn-sm toggle-classes-btn" data-race="${r.id}">Klassen</button>
-      </div>
-      <div class="classes-panel" id="classes-panel-${r.id}" style="display:none;"></div>`;
-    row.querySelector('.toggle-classes-btn').addEventListener('click', () => toggleRaceClassesAdmin(r.id, seriesId));
-    container.appendChild(row);
-  }
-}
-
-async function toggleRaceClassesAdmin(raceId, seriesId) {
-  const panel = document.getElementById(`classes-panel-${raceId}`);
-  if (panel.style.display !== 'none') { panel.style.display = 'none'; return; }
-  panel.style.display = 'block';
-  panel.innerHTML = '<span style="color:var(--text-muted);font-size:.8rem;">Laden…</span>';
-
-  const fetches = [apiFetch(`/races/${raceId}/classes`)];
-  if (seriesId) fetches.push(apiFetch(`/series/${seriesId}/classes`));
-  const [raceRes, seriesRes] = await Promise.all(fetches);
-  const classes = raceRes.ok ? await raceRes.json() : [];
-  const seriesClasses = (seriesId && seriesRes && seriesRes.ok) ? await seriesRes.json() : [];
-  panel.innerHTML = '';
-
-  // Toon reeksklassen (read-only) bovenaan
-  if (seriesClasses.length) {
-    const header = document.createElement('p');
-    header.style.cssText = 'color:var(--text-muted);font-size:.75rem;font-weight:700;text-transform:uppercase;margin:0 0 4px;';
-    header.textContent = 'Reeksklassen (geldig voor alle wedstrijden)';
-    panel.appendChild(header);
-    for (const c of seriesClasses) {
-      const el = document.createElement('div');
-      el.className = 'class-row';
-      el.innerHTML = `
-        <div class="class-info">
-          <span class="class-name">${escapeHtml(c.name)}</span>
-          <span class="class-code" title="Klik om te kopiëren">${c.code}</span>
-          <span class="class-count">${c.participant_count} deelnemer(s)</span>
-        </div>`;
-      el.querySelector('.class-code').addEventListener('click', () => {
-        navigator.clipboard.writeText(c.code);
-        showToast(`Code ${c.code} gekopieerd`, 'success');
-      });
-      panel.appendChild(el);
-    }
-  }
-
-  if (classes.length) {
-    if (seriesClasses.length) {
-      const header = document.createElement('p');
-      header.style.cssText = 'color:var(--text-muted);font-size:.75rem;font-weight:700;text-transform:uppercase;margin:8px 0 4px;';
-      header.textContent = 'Wedstrijdspecifieke klassen';
-      panel.appendChild(header);
-    }
-    for (const c of classes) {
-      const el = document.createElement('div');
-      el.className = 'class-row';
-      el.innerHTML = `
-        <div class="class-info">
-          <span class="class-name">${escapeHtml(c.name)}</span>
-          <span class="class-code" title="Klik om te kopiëren">${c.code}</span>
-          <span class="class-count">${c.participant_count} deelnemer(s)</span>
-        </div>
-        <button class="race-card-delete btn-xs" title="Klasse verwijderen">✕</button>`;
-      el.querySelector('.class-code').addEventListener('click', () => {
-        navigator.clipboard.writeText(c.code);
-        showToast(`Code ${c.code} gekopieerd`, 'success');
-      });
-      el.querySelector('.race-card-delete').addEventListener('click', async () => {
-        if (!confirm(`Klasse "${c.name}" verwijderen?`)) return;
-        await apiFetch(`/classes/${c.id}`, { method: 'DELETE' });
-        panel.style.display = 'none';
-        toggleRaceClassesAdmin(raceId, seriesId);
-      });
-      panel.appendChild(el);
-    }
-  } else if (!seriesClasses.length) {
-    const empty = document.createElement('p');
-    empty.style.cssText = 'color:var(--text-muted);font-size:.8rem;margin-bottom:8px;';
-    empty.textContent = 'Nog geen klassen.';
-    panel.appendChild(empty);
-  }
-
-  const addRow = document.createElement('div');
-  addRow.className = 'add-race-row';
-  addRow.innerHTML = `
-    <input type="text" class="add-class-name" placeholder="Naam klasse, bijv. Optimist" />
-    <button class="btn btn-secondary btn-sm add-class-btn">+ Klasse</button>`;
-  addRow.querySelector('.add-class-btn').addEventListener('click', async () => {
-    const name = addRow.querySelector('.add-class-name').value.trim();
-    if (!name) return;
-    const r = await apiFetch(`/races/${raceId}/classes`, { method: 'POST', body: JSON.stringify({ name }) });
-    if (!r.ok) { showToast((await r.json()).error, 'error'); return; }
-    const { code } = await r.json();
-    showToast(`Klasse aangemaakt — code: ${code}`, 'success');
-    panel.style.display = 'none';
-    toggleRaceClassesAdmin(raceId, seriesId);
-  });
-  panel.appendChild(addRow);
-}
-
-async function addRaceToSeries(seriesId, cardEl) {
-  const name = cardEl.querySelector('.add-race-name').value.trim();
-  const date = cardEl.querySelector('.add-race-date').value;
-  if (!name) { showToast('Naam is verplicht.', 'error'); return; }
-  const btn = cardEl.querySelector('.add-race-btn');
-  btn.disabled = true;
-  const res = await apiFetch(`/series/${seriesId}/races`, {
-    method: 'POST', body: JSON.stringify({ name, race_date: date || null }),
-  });
-  btn.disabled = false;
-  if (!res.ok) { showToast((await res.json()).error || 'Aanmaken mislukt.', 'error'); return; }
-  cardEl.querySelector('.add-race-name').value = '';
-  cardEl.querySelector('.add-race-date').value = '';
-  showToast('Wedstrijd toegevoegd.', 'success');
-  // Alleen de racelijst voor deze reeks verversen (geen volledige re-render)
-  loadAdminSeriesRaces(seriesId);
-}
-
-async function deleteSeries(id, name) {
-  if (!confirm(`Reeks "${name}" verwijderen? De wedstrijden blijven bestaan maar zijn dan los.`)) return;
-  const res = await apiFetch(`/series/${id}`, { method: 'DELETE' });
-  if (!res.ok) { showToast((await res.json()).error || 'Verwijderen mislukt.', 'error'); return; }
-  showToast('Reeks verwijderd.', 'success');
-  await loadAdminSeries();
-  updateSeriesSelect();
-}
-
-// ── Serie aanmaken ────────────────────────────────────────────────────────
-document.getElementById('create-series-btn').addEventListener('click', async () => {
-  const name   = document.getElementById('series-name').value.trim();
-  const season = document.getElementById('series-season').value.trim();
-  const desc   = document.getElementById('series-desc').value.trim();
-  const errEl  = document.getElementById('series-form-error');
-  errEl.style.display = 'none';
-  if (!name) { errEl.textContent = 'Naam is verplicht.'; errEl.style.display = 'block'; return; }
-
-  setLoading('create-series', true);
-  const res = await apiFetch('/series', {
-    method: 'POST', body: JSON.stringify({ name, season: season||null, description: desc||null }),
-  });
-  setLoading('create-series', false);
-  const data = await res.json();
-  if (!res.ok) { errEl.textContent = data.error || 'Aanmaken mislukt.'; errEl.style.display = 'block'; return; }
-  showToast('Reeks aangemaakt!', 'success');
-  document.getElementById('series-name').value = '';
-  document.getElementById('series-season').value = '';
-  document.getElementById('series-desc').value = '';
-  await loadAdminSeries();
-  updateSeriesSelect();
-});
-
-// ── Losse wedstrijd aanmaken ──────────────────────────────────────────────
-document.getElementById('create-race-btn').addEventListener('click', async () => {
-  const name     = document.getElementById('race-name').value.trim();
-  const seriesId = document.getElementById('race-series').value || null;
-  const date     = document.getElementById('race-date').value;
-  const desc     = document.getElementById('race-desc').value.trim();
-  const errEl    = document.getElementById('race-form-error');
-  errEl.style.display = 'none';
-  if (!name) { errEl.textContent = 'Naam is verplicht.'; errEl.style.display = 'block'; return; }
-
-  setLoading('create-race', true);
-
-  // Als een reeks geselecteerd: toevoegen via series-endpoint
-  const endpoint = seriesId ? `/series/${seriesId}/races` : '/races';
-  const body = seriesId
-    ? { name, race_date: date||null, description: desc||null }
-    : { name, race_date: date||null, description: desc||null };
-
-  const res = await apiFetch(endpoint, { method: 'POST', body: JSON.stringify(body) });
-  setLoading('create-race', false);
-  const data = await res.json();
-  if (!res.ok) { errEl.textContent = data.error || 'Aanmaken mislukt.'; errEl.style.display = 'block'; return; }
-  showToast('Wedstrijd aangemaakt!', 'success');
-  document.getElementById('race-name').value = '';
-  document.getElementById('race-date').value = '';
-  document.getElementById('race-desc').value = '';
-  await loadAdminSeries();
-});
-
-function setLoading(prefix, on) {
-  document.getElementById(`${prefix}-label`).style.display   = on ? 'none' : 'inline';
-  document.getElementById(`${prefix}-spinner`).style.display = on ? 'inline-block' : 'none';
-  document.getElementById(`${prefix}-btn`).disabled = on;
-}
-
-// ── Init ──────────────────────────────────────────────────────────────────
-checkMe();
-loadTracks();
-</script>
+    loadData();
+  </script>
 </body>
 </html>
