@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Regatta Screen — Beheer</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .admin-page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px 24px 80px;
+      width: 100%;
+    }
+
+    .admin-page h2 {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .admin-page .subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 28px;
+    }
+
+    .admin-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 22px 24px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 12px rgba(0,10,30,0.04);
+    }
+
+    .admin-section h3 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .admin-section .hint {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    .admin-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      margin-bottom: 14px;
+    }
+
+    .admin-field {
+      flex: 1;
+      min-width: 140px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .admin-field label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+
+    .admin-field .input,
+    .admin-field select {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--fg);
+      font-family: var(--font-body);
+      font-size: 13px;
+      outline: none;
+    }
+
+    .admin-field .input:focus,
+    .admin-field select:focus {
+      border-color: var(--accent);
+    }
+
+    .admin-field select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 30px;
+    }
+
+    .btn-admin {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 9px 18px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .btn-admin:hover { background: oklch(38% 0.14 260); }
+
+    .btn-danger {
+      background: transparent;
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-danger:hover { border-color: var(--red); color: var(--red); }
+
+    .btn-ghost-sm {
+      background: transparent;
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .btn-ghost-sm:hover { border-color: var(--accent); color: var(--accent); }
+
+    .list-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .list-item:last-child { border-bottom: none; }
+
+    .list-item .li-info { flex: 1; min-width: 0; }
+    .list-item .li-name {
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .list-item .li-meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .class-list {
+      margin-left: 16px;
+      padding-left: 16px;
+      border-left: 2px solid var(--border);
+      margin-top: 8px;
+    }
+
+    .class-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+      font-size: 13px;
+    }
+
+    .code-badge {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      background: color-mix(in oklch, var(--accent), transparent 88%);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+      letter-spacing: 0.06em;
+    }
+
+    .small-input {
+      padding: 5px 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--fg);
+      font-family: var(--font-body);
+      font-size: 12px;
+      width: 160px;
+      outline: none;
+    }
+    .small-input:focus { border-color: var(--accent); }
+
+    .loading-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .error-msg {
+      color: var(--red);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 640px) {
+      .admin-page { padding: 14px 14px 80px; }
+      .admin-section { padding: 16px 18px; }
+      .admin-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header"></header>
+
+  <div class="admin-page">
+    <h2>Beheer</h2>
+    <p class="subtitle">Reeksen, wedstrijden en klassen beheren</p>
+
+    <!-- ═══ Reeks aanmaken ═══ -->
+    <div class="admin-section">
+      <h3>Nieuwe reeks</h3>
+      <p class="hint">Een reeks groepeert meerdere wedstrijden, bijv. een woensdagavondcompetitie.</p>
+      <div class="admin-row">
+        <div class="admin-field">
+          <label for="series-name">Naam</label>
+          <input id="series-name" class="input" placeholder="Woensdagavond competitie" />
+        </div>
+        <div class="admin-field">
+          <label for="series-season">Seizoen</label>
+          <input id="series-season" class="input" placeholder="Zomer 2026" />
+        </div>
+        <div class="admin-field">
+          <label for="series-desc">Omschrijving</label>
+          <input id="series-desc" class="input" placeholder="Klasse A, start 19:00" />
+        </div>
+        <button class="btn-admin" onclick="createSeries()">Reeks aanmaken</button>
+      </div>
+    </div>
+
+    <!-- ═══ Reeksen overzicht ═══ -->
+    <div class="admin-section">
+      <h3>Bestaande reeksen</h3>
+      <div id="series-list">
+        <div class="loading-row"><div class="spinner"></div>Laden…</div>
+      </div>
+    </div>
+
+    <!-- ═══ Wedstrijd aanmaken ═══ -->
+    <div class="admin-section">
+      <h3>Nieuwe wedstrijd</h3>
+      <div class="admin-row">
+        <div class="admin-field">
+          <label for="admin-race-name">Naam</label>
+          <input id="admin-race-name" class="input" placeholder="Wedstrijd 1" />
+        </div>
+        <div class="admin-field">
+          <label for="admin-race-date">Datum</label>
+          <input id="admin-race-date" type="date" class="input" />
+        </div>
+        <div class="admin-field">
+          <label for="admin-race-desc">Omschrijving</label>
+          <input id="admin-race-desc" class="input" placeholder="Optioneel" />
+        </div>
+        <div class="admin-field">
+          <label for="race-series">Reeks</label>
+          <select id="race-series">
+            <option value="">— Geen reeks —</option>
+          </select>
+        </div>
+        <button class="btn-admin" onclick="createRace()">Wedstrijd aanmaken</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    requireAuth();
+    checkAdmin().then(() => {
+      if (!isAdmin) { window.location.href = 'dashboard.html'; return; }
+      renderHeader('admin');
+    });
+
+    // ── Load all data ─────────────────────────────────────────────────────────
+    let seriesList = [];
+    let racesList = [];
+
+    async function loadAll() {
+      try {
+        const [series, races] = await Promise.all([
+          apiGet('/series') || [],
+          apiGet('/races') || [],
+        ]);
+        seriesList = Array.isArray(series) ? series : [];
+        racesList = Array.isArray(races) ? races : [];
+        renderSeries(seriesList);
+        loadSeriesDropdown();
+      } catch (e) {
+        document.getElementById('series-list').innerHTML =
+          '<p style="color:var(--muted)">Kon gegevens niet laden.</p>';
+      }
+    }
+
+    // ── Series dropdown ─────────────────────────────────────────────────────
+    function loadSeriesDropdown() {
+      const sel = document.getElementById('race-series');
+      sel.innerHTML = '<option value="">— Geen reeks —</option>';
+      seriesList.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.name + (s.season ? ' (' + s.season + ')' : '');
+        sel.appendChild(opt);
+      });
+    }
+
+    // ── Create series ───────────────────────────────────────────────────────
+    async function createSeries() {
+      const name = document.getElementById('series-name').value.trim();
+      if (!name) return alert('Naam is verplicht.');
+      const season = document.getElementById('series-season').value.trim() || null;
+      const description = document.getElementById('series-desc').value.trim() || null;
+      try {
+        await apiPost('/series', { name, season, description });
+        document.getElementById('series-name').value = '';
+        document.getElementById('series-season').value = '';
+        document.getElementById('series-desc').value = '';
+        await loadAll();
+      } catch (e) { alert('Fout: ' + e.message); }
+    }
+
+    // ── Create race ─────────────────────────────────────────────────────────
+    async function createRace() {
+      const name = document.getElementById('admin-race-name').value.trim();
+      if (!name) return alert('Naam is verplicht.');
+      const race_date = document.getElementById('admin-race-date').value || null;
+      const series_id = document.getElementById('race-series').value || null;
+      const description = document.getElementById('admin-race-desc').value.trim() || null;
+      try {
+        await apiPost('/races', { name, race_date, series_id: series_id ? parseInt(series_id) : null, description });
+        document.getElementById('admin-race-name').value = '';
+        document.getElementById('admin-race-date').value = '';
+        document.getElementById('admin-race-desc').value = '';
+        alert('Wedstrijd aangemaakt!');
+        await loadAll();
+      } catch (e) { alert('Fout: ' + e.message); }
+    }
+
+    // ── Delete series ───────────────────────────────────────────────────────
+    async function deleteSeries(id) {
+      if (!confirm('Weet je zeker dat je deze reeks wilt verwijderen? Wedstrijden blijven bewaard.')) return;
+      try {
+        await fetch(API + '/series/' + id, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + getToken() },
+        });
+        await loadAll();
+      } catch (e) { alert('Fout: ' + e.message); }
+    }
+
+    // ── Create series class ─────────────────────────────────────────────────
+    async function createSeriesClass(seriesId) {
+      const input = document.getElementById('series-class-name-' + seriesId);
+      const name = input?.value.trim();
+      if (!name) return alert('Naam is verplicht.');
+      try {
+        const result = await apiPost('/series/' + seriesId + '/classes', { name });
+        input.value = '';
+        await loadSeriesClasses(seriesId);
+      } catch (e) { alert('Fout: ' + e.message); }
+    }
+
+    // ── Load & render series classes ────────────────────────────────────────
+    async function loadSeriesClasses(seriesId) {
+      const container = document.getElementById('series-classes-' + seriesId);
+      if (!container) return;
+      try {
+        const classes = await apiGet('/series/' + seriesId + '/classes') || [];
+        container.innerHTML = classes.map(c => `
+          <div class="class-item">
+            <span>${escHtml(c.name)}</span>
+            <span class="code-badge">${c.code}</span>
+            <span style="font-size:11px;color:var(--muted)">${c.participant_count || 0} deelnemers</span>
+            <button class="btn-danger" onclick="deleteSeriesClass(${c.id})" style="margin-left:auto">×</button>
+          </div>
+        `).join('') || '<div style="color:var(--muted);font-size:12px;padding:6px 0">Nog geen klassen.</div>';
+      } catch (_) {}
+    }
+
+    async function deleteSeriesClass(id) {
+      if (!confirm('Deze klasse verwijderen?')) return;
+      try {
+        await fetch(API + '/series-classes/' + id, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + getToken() },
+        });
+        await loadAll();
+      } catch (e) { alert('Fout: ' + e.message); }
+    }
+
+    // ── Render series list ──────────────────────────────────────────────────
+    function renderSeries(list) {
+      const container = document.getElementById('series-list');
+      if (!list.length) {
+        container.innerHTML = '<p style="color:var(--muted);font-size:13px">Nog geen reeksen aangemaakt.</p>';
+        return;
+      }
+
+      container.innerHTML = list.map(s => `
+        <div class="list-item" style="flex-direction:column;align-items:stretch">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <div class="li-info">
+              <div class="li-name">${escHtml(s.name)}</div>
+              <div class="li-meta">
+                ${s.season ? escHtml(s.season) + ' · ' : ''}
+                ${s.race_count || 0} wedstrijd(en)
+                ${s.description ? ' — ' + escHtml(s.description) : ''}
+              </div>
+            </div>
+            <button class="btn-danger" onclick="deleteSeries(${s.id})">Verwijder</button>
+          </div>
+
+          <div style="margin-top:8px">
+            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);margin-bottom:6px">Klassen</div>
+            <div id="series-classes-${s.id}">
+              <div class="loading-row">Laden…</div>
+            </div>
+            <div class="admin-row" style="margin-top:8px;margin-bottom:0">
+              <input id="series-class-name-${s.id}" class="small-input" placeholder="Klasse naam" />
+              <button class="btn-ghost-sm" onclick="createSeriesClass(${s.id})">+ Klasse toevoegen</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      // Load classes for each series
+      list.forEach(s => loadSeriesClasses(s.id));
+    }
+
+    // ── Init ────────────────────────────────────────────────────────────────
+    loadAll();
+  </script>
+</body>
+</html>
