@@ -407,17 +407,7 @@
                 <div class="r-date">${r.race_date ? fmtDate(r.race_date) : '—'}</div>
               </div>
               <span class="r-count">${r.participant_count || 0} boten</span>
-              <button class="btn-out" onclick="event.stopPropagation();toggleRaceClasses(${r.id})">Klassen</button>
               <button class="btn-del" onclick="event.stopPropagation();delRace(${r.id})">×</button>
-            </div>
-            <div id="rclasses-wrap-${r.id}" style="display:none">
-              <div class="race-classes">
-                <div id="rclasses-${r.id}"></div>
-                <div class="frow" style="margin-top:6px;margin-bottom:0">
-                  <input id="rclass-inp-${r.id}" class="input" placeholder="Klasse naam" style="flex:1;max-width:180px;padding:4px 8px;font-size:12px">
-                  <button class="btn-out" onclick="addRaceClass(${r.id})">+ Klasse</button>
-                </div>
-              </div>
             </div>
           `).join('') || '<span class="text-muted">Nog geen wedstrijden.</span>'}
 
