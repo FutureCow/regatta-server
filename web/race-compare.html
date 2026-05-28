@@ -321,7 +321,7 @@
   <script src="script.js"></script>
   <script>
     requireAuth();
-    renderHeader('compare');
+    checkAdmin().then(() => renderHeader('compare'));
 
     const raceId = sessionStorage.getItem('raceId');
     const BOAT_COLORS = ['#1d4ed8', '#059669', '#d97706', '#dc2626', '#7c3aed', '#db2777', '#0891b2', '#65a30d'];

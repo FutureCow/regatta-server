@@ -79,11 +79,34 @@ function fmtDeg(deg) {
   return Math.round(deg) + '°';
 }
 
+/* ── Admin check ──────────────────────────────────────────── */
+let isAdmin = false;
+
+async function checkAdmin() {
+  if (!isLoggedIn()) return;
+  try {
+    const res = await fetch(API + '/auth/me', {
+      headers: { 'Authorization': 'Bearer ' + getToken() },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      isAdmin = !!data.isAdmin;
+    }
+  } catch (_) { /* non-critical */ }
+}
+
 /* ── Build header ─────────────────────────────────────────── */
 function renderHeader(title) {
   const nav = document.querySelector('.app-header');
   if (!nav) return;
   const email = getEmail();
+  const adminLink = isAdmin
+    ? `<a href="#" class="admin-gear" onclick="toggleAdminPanel();return false" title="Beheer">
+         <svg id="admin-gear-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" width="18" height="18">
+           <circle cx="10" cy="10" r="3"/><path d="M10 1.5v2M10 16.5v2M18.5 10h-2M3.5 10h-2M15.9 4.1l-1.4 1.4M5.5 14.5l-1.4 1.4M15.9 15.9l-1.4-1.4M5.5 5.5L4.1 4.1"/>
+         </svg>
+       </a>`
+    : '';
   nav.innerHTML = `
     <div class="logo">
       <svg viewBox="0 0 28 28" fill="none" stroke="var(--accent)" stroke-width="2">
@@ -99,6 +122,7 @@ function renderHeader(title) {
       <a href="race-compare.html" class="${title === 'compare' ? 'active' : ''}">Vergelijk</a>
     </div>
     <div class="user-menu">
+      ${adminLink}
       <span class="email">${email || ''}</span>
       <button class="btn btn-ghost btn-sm" onclick="handleLogout()">Uitloggen</button>
     </div>
@@ -108,4 +132,65 @@ function renderHeader(title) {
 function handleLogout() {
   clearAuth();
   window.location.href = '/';
+}
+
+/* ── Admin panel ──────────────────────────────────────────── */
+function toggleAdminPanel() {
+  const panel = document.getElementById('admin-panel');
+  if (!panel) return;
+  const isVisible = panel.style.display !== 'none';
+  panel.style.display = isVisible ? 'none' : 'block';
+  document.getElementById('admin-gear-icon')?.classList.toggle('active', !isVisible);
+  if (!isVisible) loadSeriesForAdmin();
+}
+
+async function loadSeriesForAdmin() {
+  const sel = document.getElementById('race-series');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Geen reeks —</option>';
+  try {
+    const list = await apiGet('/series');
+    if (Array.isArray(list)) {
+      list.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.name + (s.season ? ' (' + s.season + ')' : '');
+        sel.appendChild(opt);
+      });
+    }
+  } catch (_) {}
+}
+
+async function createSeries() {
+  const name = document.getElementById('series-name')?.value.trim();
+  if (!name) return alert('Naam is verplicht.');
+  const season = document.getElementById('series-season')?.value.trim() || null;
+  const description = document.getElementById('series-desc')?.value.trim() || null;
+  try {
+    await apiPost('/series', { name, season, description });
+    document.getElementById('series-name').value = '';
+    document.getElementById('series-season').value = '';
+    document.getElementById('series-desc').value = '';
+    loadSeriesForAdmin();
+    alert('Reeks aangemaakt!');
+  } catch (e) {
+    alert('Fout: ' + e.message);
+  }
+}
+
+async function createRace() {
+  const name = document.getElementById('admin-race-name')?.value.trim();
+  if (!name) return alert('Naam is verplicht.');
+  const race_date = document.getElementById('admin-race-date')?.value || null;
+  const series_id = document.getElementById('race-series')?.value || null;
+  const description = document.getElementById('admin-race-desc')?.value.trim() || null;
+  try {
+    await apiPost('/races', { name, race_date, series_id: series_id ? parseInt(series_id) : null, description });
+    document.getElementById('admin-race-name').value = '';
+    document.getElementById('admin-race-date').value = '';
+    document.getElementById('admin-race-desc').value = '';
+    alert('Wedstrijd aangemaakt! Ververs de pagina om hem te zien.');
+  } catch (e) {
+    alert('Fout: ' + e.message);
+  }
 }
