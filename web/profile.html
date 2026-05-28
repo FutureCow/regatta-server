@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Regatta Screen — Profiel</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .profile-page { max-width: 520px; margin: 0 auto; padding: 20px 24px 80px; width: 100%; }
+    .profile-page h2 {
+      font-family: var(--font-display); font-size: 26px; font-weight: 700;
+      letter-spacing: -0.02em; margin-bottom: 4px;
+    }
+    .profile-page .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 22px 24px; margin-bottom: 14px;
+      box-shadow: 0 2px 12px rgba(0,10,30,0.04);
+    }
+    .card h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block; font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--muted); margin-bottom: 5px;
+    }
+    .field .input {
+      width: 100%; padding: 9px 12px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--fg); font-family: var(--font-body);
+      font-size: 14px; outline: none;
+    }
+    .field .input:focus { border-color: var(--accent); }
+
+    .btn-save {
+      width: 100%; padding: 11px; background: var(--accent); color: #fff;
+      border: none; border-radius: var(--radius-sm); font-family: var(--font-body);
+      font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+    }
+    .btn-save:hover { background: oklch(38% 0.14 260); }
+
+    .toast {
+      padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 14px;
+    }
+    .toast-ok { background: color-mix(in oklch, var(--green), transparent 88%); color: var(--green); }
+    .toast-err { background: color-mix(in oklch, var(--red), transparent 88%); color: var(--red); }
+
+    @media (max-width: 640px) {
+      .profile-page { padding: 14px 14px 80px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header"></header>
+
+  <div class="profile-page">
+    <h2>Profiel</h2>
+    <p class="subtitle" id="profile-email">—</p>
+
+    <div id="toast"></div>
+
+    <div class="card">
+      <h3>Boot & Team</h3>
+      <div class="field">
+        <label for="pf-boat-type">Boot type</label>
+        <input id="pf-boat-type" class="input" placeholder="bijv. Randmeer, Valk, Laser" />
+      </div>
+      <div class="field">
+        <label for="pf-boat-name">Boot naam</label>
+        <input id="pf-boat-name" class="input" placeholder="bijv. De Vliegende Hollander" />
+      </div>
+      <div class="field">
+        <label for="pf-team-name">Team naam</label>
+        <input id="pf-team-name" class="input" placeholder="bijv. WV de Zuidwal" />
+      </div>
+      <button class="btn-save" onclick="saveProfile()">Opslaan</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    requireAuth();
+    checkAdmin().then(() => renderHeader('profile'));
+
+    async function loadProfile() {
+      try {
+        const data = await apiGet('/auth/me');
+        document.getElementById('profile-email').textContent = data.email || '';
+        document.getElementById('pf-boat-type').value = data.boatType || '';
+        document.getElementById('pf-boat-name').value = data.boatName || '';
+        document.getElementById('pf-team-name').value = data.teamName || '';
+      } catch (e) {
+        showToast('Kon profiel niet laden.', 'err');
+      }
+    }
+
+    async function saveProfile() {
+      const boat_type = document.getElementById('pf-boat-type').value.trim() || null;
+      const boat_name = document.getElementById('pf-boat-name').value.trim() || null;
+      const team_name = document.getElementById('pf-team-name').value.trim() || null;
+
+      try {
+        const res = await fetch(API + '/auth/profile', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + getToken(),
+          },
+          body: JSON.stringify({ boat_type, boat_name, team_name }),
+        });
+        if (!res.ok) throw new Error('Mislukt');
+        showToast('Profiel opgeslagen!', 'ok');
+      } catch (e) {
+        showToast('Opslaan mislukt.', 'err');
+      }
+    }
+
+    function showToast(msg, type) {
+      const el = document.getElementById('toast');
+      el.innerHTML = `<div class="toast toast-${type}">${msg}</div>`;
+      setTimeout(() => { el.innerHTML = ''; }, 3000);
+    }
+
+    loadProfile();
+  </script>
+</body>
+</html>

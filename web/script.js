@@ -116,7 +116,7 @@ function renderHeader(title) {
       <a href="admin.html" class="${title === 'admin' ? 'active' : ''}" style="${isAdmin ? '' : 'display:none'}">Beheer</a>
     </div>
     <div class="user-menu">
-      <span class="email">${email || ''}</span>
+      <span class="email"><a href="profile.html" style="color:inherit;text-decoration:none">${email || ''}</a></span>
       <button class="btn btn-ghost btn-sm" onclick="handleLogout()">Uitloggen</button>
     </div>
   `;
