@@ -229,7 +229,7 @@
 
     .track-card .track-stats {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 8px;
     }
 
@@ -539,6 +539,7 @@
               <div class="track-stat"><div class="ts-val">${avgKn}</div><div class="ts-lbl">Gemiddeld</div></div>
               <div class="track-stat"><div class="ts-val">${dist}</div><div class="ts-lbl">Afstand</div></div>
               <div class="track-stat"><div class="ts-val">${dur}</div><div class="ts-lbl">Duur</div></div>
+              <div class="track-stat"><div class="ts-val">${t.wind_direction_deg != null ? Math.round(t.wind_direction_deg) + '°' : '—'} <span style="font-size:10px;opacity:0.6">${degToCompass(t.wind_direction_deg)}</span></div><div class="ts-lbl">Wind</div></div>
             </div>
             <div class="track-actions">
               <button class="btn-join" onclick="event.stopPropagation();showJoinInput(this)" data-track-id="${t.id}">🔗 Koppelen</button>
@@ -550,6 +551,12 @@
             </div>
           </div>`;
       }).join('');
+    }
+
+    function degToCompass(deg) {
+      if (deg == null) return '';
+      const dirs = ['N','NNO','NO','ONO','O','OZO','ZO','ZZO','Z','ZZW','ZW','WZW','W','WNW','NW','NNW'];
+      return dirs[Math.round(deg / 22.5) % 16];
     }
 
     async function deleteTrackClicked(btn) {
