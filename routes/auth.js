@@ -15,7 +15,7 @@ function createAuthRouter(db) {
 
   // ── POST /api/auth/register ───────────────────────────────────────────────
   router.post('/register', async (req, res) => {
-    const { email, password } = req.body || {};
+    const { email, password, boat_type, boat_name, team_name } = req.body || {};
 
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return res.status(400).json({ error: 'Ongeldig e-mailadres.' });
@@ -35,8 +35,8 @@ function createAuthRouter(db) {
     try {
       const passwordHash = await bcrypt.hash(password, 12);
       const result = db
-        .prepare('INSERT INTO users (email, password_hash) VALUES (?, ?)')
-        .run(normalised, passwordHash);
+        .prepare('INSERT INTO users (email, password_hash, boat_type, boat_name, team_name) VALUES (?, ?, ?, ?, ?)')
+        .run(normalised, passwordHash, boat_type || null, boat_name || null, team_name || null);
 
       const token = jwt.sign(
         { sub: result.lastInsertRowid, email: normalised },
@@ -61,12 +61,37 @@ function createAuthRouter(db) {
     const jwt = require('jsonwebtoken');
     try {
       const payload = jwt.verify(authHeader.slice(7), SECRET);
-      const user = db.prepare('SELECT id, email, is_admin FROM users WHERE id = ?').get(payload.sub);
+      const user = db.prepare('SELECT id, email, is_admin, boat_type, boat_name, team_name FROM users WHERE id = ?').get(payload.sub);
       if (!user) return res.status(404).json({ error: 'Gebruiker niet gevonden.' });
-      return res.json({ id: user.id, email: user.email, isAdmin: !!user.is_admin });
+      return res.json({
+        id: user.id, email: user.email, isAdmin: !!user.is_admin,
+        boatType: user.boat_type, boatName: user.boat_name, teamName: user.team_name,
+      });
     } catch {
       return res.status(401).json({ error: 'Token ongeldig.' });
     }
+  });
+
+  // ── PUT /api/auth/profile ──────────────────────────────────────────────────
+  router.put('/profile', (req, res) => {
+    const authHeader = req.headers['authorization'];
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Niet ingelogd.' });
+    }
+    const { SECRET } = require('../middleware/auth');
+    const jwt = require('jsonwebtoken');
+    let payload;
+    try {
+      payload = jwt.verify(authHeader.slice(7), SECRET);
+    } catch {
+      return res.status(401).json({ error: 'Token ongeldig.' });
+    }
+
+    const { boat_type, boat_name, team_name } = req.body || {};
+    db.prepare('UPDATE users SET boat_type = ?, boat_name = ?, team_name = ? WHERE id = ?')
+      .run(boat_type ?? null, boat_name ?? null, team_name ?? null, payload.sub);
+
+    return res.json({ ok: true });
   });
 
   // ── POST /api/auth/login ──────────────────────────────────────────────────

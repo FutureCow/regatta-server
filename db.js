@@ -86,6 +86,9 @@ function initDb(dbPath) {
   // Migrations
   try { db.exec(`ALTER TABLE tracks ADD COLUMN original_filename TEXT`); } catch (_) {}
   try { db.exec(`ALTER TABLE race_tracks ADD COLUMN series_class_id INTEGER REFERENCES series_classes(id) ON DELETE SET NULL`); } catch (_) {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN boat_type TEXT`); } catch (_) {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN boat_name TEXT`); } catch (_) {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN team_name TEXT`); } catch (_) {}
 
   return db;
 }

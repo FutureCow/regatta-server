@@ -110,6 +110,7 @@ function createRacesRouter(db, tracksDir) {
       `SELECT t.id, t.name, t.recorded_at, t.duration_seconds, t.distance_meters,
               t.max_speed_knots, t.avg_speed_knots, t.wind_direction_deg, t.point_count,
               u.email AS user_email,
+              u.boat_type, u.boat_name, u.team_name,
               rt.linked_at,
               sc.name AS series_class_name, sc.code AS series_class_code,
               c.name AS class_name, c.code AS class_code
