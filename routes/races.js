@@ -262,7 +262,7 @@ function createRacesRouter(db, tracksDir) {
 
           // Bereken snelheid naar vorige punt
           if (j > 0 && time && points[j - 1].time) {
-            const dist = haversineM(points[j - 1].lat, points[j - 1].lng, lat, lon);
+            const dist = haversineM(points[j - 1].lat, points[j - 1].lon, lat, lon);
             const dt = (new Date(time) - new Date(points[j - 1].time)) / 1000;
             if (dt > 0) {
               const speedKn = (dist / 1852) / (dt / 3600);
