@@ -169,21 +169,13 @@
         <div class="fld"><label for="sr-name">Naam</label><input id="sr-name" class="input" placeholder="Eenmalige wedstrijd"></div>
         <div class="fld"><label for="sr-date">Datum</label><input id="sr-date" type="date" class="date-inp"></div>
         <div class="fld"><label for="sr-desc">Omschrijving</label><input id="sr-desc" class="input" placeholder="Optioneel"></div>
-        <button class="btn btn-pri" onclick="console.log('Toevoegen clicked');addStandaloneRace()" style="height:36px">Toevoegen</button>
+        <button class="btn btn-pri" onclick="addStandaloneRace()" style="height:36px">Toevoegen</button>
       </div>
     </div>
   </div>
 
   <script src="script.js"></script>
   <script>
-    // ── Global error catcher ──
-    window.onerror = function(msg, url, line) {
-      console.error('JS ERROR:', msg, 'at', url, 'line', line);
-      document.getElementById('series-container').innerHTML =
-        '<div class="sect"><p style="color:var(--red)">JS-fout: ' + msg + ' (regel ' + line + ')</p></div>';
-    };
-
-    console.log('admin.js loaded');
     requireAuth();
     checkAdmin().then(() => {
       if (!isAdmin) { window.location.href = 'dashboard.html'; return; }
@@ -196,15 +188,12 @@
     // ── Load ────────────────────────────────────────────────────────────────
     async function loadAll() {
       try {
-        console.log('loadAll: fetching /series + /races');
         const [series, races] = await Promise.all([
           apiGet('/series') || [],
           apiGet('/races') || [],
         ]);
-        console.log('loadAll: series=', series && series.length, 'races=', races && races.length);
         allSeries = Array.isArray(series) ? series : [];
         allRaces = Array.isArray(races) ? races : [];
-        // Onthoud welke reeksen open stonden
         var wasOpen = Object.keys(expandedSeries).map(Number);
         renderSeries(allSeries);
         renderStandalone(allRaces.filter(function(r) { return !r.series_id; }));
@@ -212,9 +201,8 @@
         expandedSeries = {};
         for (var i = 0; i < wasOpen.length; i++) { toggleSeries(wasOpen[i]); }
       } catch (e) {
-        console.error('loadAll failed:', e);
         document.getElementById('series-container').innerHTML =
-          '<p class="text-muted">Kon gegevens niet laden: ' + e.message + '</p>';
+          '<p class="text-muted">Kon gegevens niet laden.</p>';
       }
     }
 
@@ -225,25 +213,21 @@
       const season = document.getElementById('sf-season').value.trim() || null;
       const description = document.getElementById('sf-desc').value.trim() || null;
       try {
-        console.log('POST /api/series', { name, season, description });
-        const result = await apiPost('/series', { name, season, description });
-        console.log('series created:', result);
+        await apiPost('/series', { name, season, description });
         document.getElementById('sf-name').value = '';
         document.getElementById('sf-season').value = '';
         document.getElementById('sf-desc').value = '';
         await loadAll();
-      } catch (e) { console.error('addSeries failed:', e); alert('Fout: ' + e.message); }
+      } catch (e) { alert('Fout: ' + e.message); }
     }
 
     // ── Delete series ──────────────────────────────────────────────────────
     async function delSeries(id) {
       if (!confirm('Reeks verwijderen? Wedstrijden blijven bewaard.')) return;
       try {
-        console.log('DELETE /api/series/' + id);
-        const data = await apiDelete('/series/' + id);
-        console.log('series deleted:', data);
+        await apiDelete('/series/' + id);
         await loadAll();
-      } catch (e) { console.error('delSeries failed:', e); alert('Fout: ' + e.message); }
+      } catch (e) { alert('Fout: ' + e.message); }
     }
 
     // ── Add standalone race ────────────────────────────────────────────────
@@ -253,44 +237,38 @@
       const race_date = document.getElementById('sr-date').value || null;
       const description = document.getElementById('sr-desc').value.trim() || null;
       try {
-        console.log('POST /api/races', { name, race_date, description });
-        const result = await apiPost('/races', { name, race_date, description });
-        console.log('race created:', result);
+        await apiPost('/races', { name, race_date, description });
         document.getElementById('sr-name').value = '';
         document.getElementById('sr-date').value = '';
         document.getElementById('sr-desc').value = '';
         await loadAll();
-      } catch (e) { console.error('addStandaloneRace failed:', e); alert('Fout: ' + e.message); }
+      } catch (e) { alert('Fout: ' + e.message); }
     }
 
     // ── Delete race ────────────────────────────────────────────────────────
     async function delRace(id) {
       if (!confirm('Wedstrijd verwijderen?')) return;
       try {
-        console.log('DELETE /api/races/' + id);
-        const data = await apiDelete('/races/' + id);
-        console.log('race deleted:', data);
+        await apiDelete('/races/' + id);
         await loadAll();
-      } catch (e) { console.error('delRace failed:', e, '| type:', typeof e, '| stack:', e.stack); alert('Fout: ' + (e.message || JSON.stringify(e))); }
+      } catch (e) { alert('Fout: ' + e.message); }
     }
 
     // ── Add race to series ─────────────────────────────────────────────────
     async function addSeriesRace(seriesId) {
       const nameEl = document.getElementById('race-name-' + seriesId);
-      if (!nameEl) { console.error('race-name-' + seriesId + ' not found'); return alert('Element niet gevonden.'); }
+      if (!nameEl) return alert('Element niet gevonden.');
       const name = nameEl.value.trim();
       if (!name) return alert('Naam is verplicht.');
       const race_date = document.getElementById('race-date-' + seriesId).value || null;
       const description = document.getElementById('race-desc-' + seriesId).value.trim() || null;
       try {
-        console.log('POST /api/series/' + seriesId + '/races', { name, race_date, description });
-        const result = await apiPost('/series/' + seriesId + '/races', { name, race_date, description });
-        console.log('series race created:', result);
+        await apiPost('/series/' + seriesId + '/races', { name, race_date, description });
         document.getElementById('race-name-' + seriesId).value = '';
         document.getElementById('race-date-' + seriesId).value = '';
         document.getElementById('race-desc-' + seriesId).value = '';
         await loadAll();
-      } catch (e) { console.error('addSeriesRace failed:', e); alert('Fout: ' + e.message); }
+      } catch (e) { alert('Fout: ' + e.message); }
     }
 
     // ── Series classes ─────────────────────────────────────────────────────
@@ -371,7 +349,6 @@
 
     // ── Render series cards ────────────────────────────────────────────────
     function renderSeries(list) {
-      console.log('renderSeries: rendering', list.length, 'series');
       const ctr = document.getElementById('series-container');
       if (!list.length) {
         ctr.innerHTML = '<div class="sect"><p class="text-muted">Nog geen reeksen. Maak er hierboven één aan.</p></div>';
@@ -396,10 +373,9 @@
     // ── Toggle series expand ───────────────────────────────────────────────
     let expandedSeries = {};
     async function toggleSeries(id) {
-      console.log('toggleSeries:', id, 'expanded?', !!expandedSeries[id]);
       const card = document.getElementById('scard-' + id);
       const body = document.getElementById('sbody-' + id);
-      if (!card || !body) { console.log('toggleSeries:', id, 'card or body not found'); return; }
+      if (!card || !body) return;
 
       if (expandedSeries[id]) {
         card.classList.remove('open');
@@ -441,7 +417,7 @@
             <div class="fld"><input id="race-name-${id}" class="input" placeholder="Wedstrijd naam"></div>
             <div class="fld"><input id="race-date-${id}" type="date" class="date-inp"></div>
             <div class="fld"><input id="race-desc-${id}" class="input" placeholder="Omschrijving (optioneel)"></div>
-            <button class="btn btn-pri" onclick="console.log('+Wedstrijd clicked, seriesId='+${id});addSeriesRace(${id})" style="height:33px">+ Wedstrijd</button>
+            <button class="btn btn-pri" onclick="addSeriesRace(${id})" style="height:33px">+ Wedstrijd</button>
           </div>
         </div>
 
@@ -464,7 +440,6 @@
 
     // ── Render standalone races ────────────────────────────────────────────
     function renderStandalone(list) {
-      console.log('renderStandalone:', list.length, 'races');
       const ctr = document.getElementById('standalone-races');
       if (!list.length) {
         ctr.innerHTML = '<p class="text-muted">Geen losse wedstrijden.</p>';
