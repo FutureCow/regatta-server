@@ -40,6 +40,34 @@ async function apiPost(path, body) {
   return data;
 }
 
+async function apiPut(path, body) {
+  const token = getToken();
+  const res = await fetch(API + path, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + token,
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Verzoek mislukt (' + res.status + ')');
+  return data;
+}
+
+async function apiDelete(path) {
+  const token = getToken();
+  const res = await fetch(API + path, {
+    method: 'DELETE',
+    headers: { 'Authorization': 'Bearer ' + token },
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Verzoek mislukt (' + res.status + ')');
+  }
+  return res.json();
+}
+
 /* ── Route guard ──────────────────────────────────────────── */
 function requireAuth() {
   if (!isLoggedIn()) window.location.href = '/';
@@ -81,6 +109,7 @@ function fmtDeg(deg) {
 
 /* ── Admin check ──────────────────────────────────────────── */
 let isAdmin = false;
+let isSuperAdmin = false;
 
 async function checkAdmin() {
   if (!isLoggedIn()) return;
@@ -91,6 +120,7 @@ async function checkAdmin() {
     if (res.ok) {
       const data = await res.json();
       isAdmin = !!data.isAdmin;
+      isSuperAdmin = !!data.isSuperAdmin;
     }
   } catch (_) { /* non-critical */ }
 }
