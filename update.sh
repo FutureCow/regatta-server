@@ -28,6 +28,15 @@ fi
 echo "--> npm install..."
 npm install --omit=dev
 
+# ── 3b. Python dependencies voor Garmin sync ──────────────────────────────────
+echo "--> Python garminconnect..."
+if command -v python3 > /dev/null 2>&1; then
+  python3 -m pip install garminconnect --quiet 2>/dev/null || \
+    echo "  ⚠ python3 of pip niet beschikbaar — Garmin sync werkt niet"
+else
+  echo "  ⚠ python3 niet gevonden — Garmin sync werkt niet"
+fi
+
 # ── 4. Database migraties uitvoeren ───────────────────────────────────────────
 echo "--> database migraties..."
 node - <<'JS'

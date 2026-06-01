@@ -27,6 +27,7 @@ const createRacesRouter = require('./routes/races');
 const createSeriesRouter = require('./routes/series');
 const createClassesRouter = require('./routes/classes');
 const createAdminRouter = require('./routes/admin');
+const createGarminRouter = require('./routes/garmin');
 
 // ── Directory setup ────────────────────────────────────────────────────────
 const DATA_DIR = path.join(__dirname, 'data');
@@ -63,6 +64,7 @@ app.use('/api/races', createRacesRouter(db, TRACKS_DIR));
 app.use('/api/series', createSeriesRouter(db));
 app.use('/api', createClassesRouter(db));
 app.use('/api/admin', createAdminRouter(db));
+app.use('/api/garmin', createGarminRouter(db));
 
 // ── Fallback: serve index.html for SPA-like navigation ────────────────────
 app.get('*', (req, res) => {

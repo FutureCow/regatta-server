@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Regatta Screen — Garmin Connect</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .garmin-page { max-width: 520px; margin: 0 auto; padding: 20px 24px 80px; width: 100%; }
+    .garmin-page h2 {
+      font-family: var(--font-display); font-size: 26px; font-weight: 700;
+      letter-spacing: -0.02em; margin-bottom: 4px;
+    }
+    .garmin-page .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 22px 24px; margin-bottom: 14px;
+      box-shadow: 0 2px 12px rgba(0,10,30,0.04);
+    }
+    .card h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block; font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--muted); margin-bottom: 5px;
+    }
+    .field .input {
+      width: 100%; padding: 9px 12px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--fg); font-family: var(--font-body);
+      font-size: 14px; outline: none;
+    }
+    .field .input:focus { border-color: var(--accent); }
+    .field .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    .btn-primary {
+      width: 100%; padding: 11px; background: var(--accent); color: #fff;
+      border: none; border-radius: var(--radius-sm); font-family: var(--font-body);
+      font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s;
+    }
+    .btn-primary:hover { background: oklch(38% 0.14 260); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-danger {
+      width: 100%; padding: 11px; background: transparent; color: var(--red);
+      border: 1px solid var(--red); border-radius: var(--radius-sm);
+      font-family: var(--font-body); font-size: 14px; cursor: pointer;
+      margin-top: 8px; transition: background 0.15s;
+    }
+    .btn-danger:hover { background: color-mix(in oklch, var(--red), transparent 92%); }
+
+    .status-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 0; border-bottom: 1px solid var(--border);
+    }
+    .status-row:last-child { border-bottom: none; }
+    .status-row .label { font-size: 13px; color: var(--muted); }
+    .status-row .value { font-size: 13px; font-weight: 600; font-family: var(--font-mono); }
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .status-dot.connected { background: var(--green); }
+    .status-dot.disconnected { background: var(--muted); }
+
+    .toast {
+      padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 14px;
+    }
+    .toast-ok { background: color-mix(in oklch, var(--green), transparent 88%); color: var(--green); }
+    .toast-err { background: color-mix(in oklch, var(--red), transparent 88%); color: var(--red); }
+    .toast-info { background: color-mix(in oklch, var(--accent), transparent 88%); color: var(--accent); }
+
+    .spinner-inline { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 6px; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 640px) {
+      .garmin-page { padding: 14px 14px 80px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header"></header>
+
+  <div class="garmin-page">
+    <h2>Garmin Connect</h2>
+    <p class="subtitle">Koppel je Garmin account om automatisch zeiltracks te importeren</p>
+
+    <div id="toast"></div>
+
+    <!-- Status card -->
+    <div class="card" id="status-card">
+      <h3>Status</h3>
+      <div id="status-content">
+        <div style="text-align:center;padding:20px;color:var(--muted)">Laden…</div>
+      </div>
+    </div>
+
+    <!-- Connect card -->
+    <div class="card" id="connect-card">
+      <h3 id="connect-title">Koppelen</h3>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px">
+        Je Garmin Connect inloggegevens worden versleuteld opgeslagen en alleen gebruikt om GPX-bestanden van zeilactiviteiten op te halen.
+      </p>
+      <div class="field">
+        <label for="gc-email">Garmin Connect e-mail</label>
+        <input id="gc-email" type="email" class="input" placeholder="jouw@email.com" autocomplete="username" />
+      </div>
+      <div class="field">
+        <label for="gc-password">Garmin Connect wachtwoord</label>
+        <input id="gc-password" type="password" class="input" placeholder="••••••••" autocomplete="current-password" />
+        <div class="hint">Alleen zeilactiviteiten (sailing) worden opgehaald. Andere sporten worden overgeslagen.</div>
+      </div>
+      <button class="btn-primary" id="btn-connect" onclick="connectGarmin()">Koppelen</button>
+      <button class="btn-danger" id="btn-disconnect" onclick="disconnectGarmin()" style="display:none">Ontkoppelen</button>
+    </div>
+
+    <!-- Sync card -->
+    <div class="card" id="sync-card" style="display:none">
+      <h3>Synchronisatie</h3>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px">
+        Haal nieuwe zeilactiviteiten op van Garmin Connect. De GPX-bestanden worden automatisch toegevoegd aan je tracks.
+      </p>
+      <div id="sync-status"></div>
+      <button class="btn-primary" id="btn-sync" onclick="syncNow()">
+        <span id="btn-sync-text">Nu synchroniseren</span>
+      </button>
+    </div>
+
+    <p style="text-align:center;margin-top:16px">
+      <a href="profile.html" style="font-size:13px;color:var(--muted)">← Terug naar profiel</a>
+    </p>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    requireAuth();
+    checkAdmin().then(() => renderHeader('garmin'));
+
+    async function loadStatus() {
+      try {
+        const data = await apiGet('/garmin/status');
+        renderStatus(data);
+      } catch (e) {
+        showToast('Kon status niet laden.', 'err');
+      }
+    }
+
+    function renderStatus(data) {
+      const sc = document.getElementById('status-content');
+      const linked = data.linked;
+
+      sc.innerHTML = `
+        <div class="status-row">
+          <span class="label"><span class="status-dot ${linked ? 'connected' : 'disconnected'}"></span>Garmin Connect</span>
+          <span class="value">${linked ? 'Gekoppeld' : 'Niet gekoppeld'}</span>
+        </div>
+        ${linked ? `
+          <div class="status-row">
+            <span class="label">Laatste sync</span>
+            <span class="value">${data.last_sync_at ? fmtDate(data.last_sync_at) + ' ' + fmtTime(data.last_sync_at) : 'Nog niet'}</span>
+          </div>
+          <div class="status-row">
+            <span class="label">Gekoppeld sinds</span>
+            <span class="value">${fmtDate(data.created_at)}</span>
+          </div>
+        ` : ''}
+      `;
+
+      // Toggle connect/disconnect UI
+      document.getElementById('btn-connect').style.display = linked ? 'none' : '';
+      document.getElementById('btn-disconnect').style.display = linked ? '' : 'none';
+      document.getElementById('connect-title').textContent = linked ? 'Opnieuw koppelen' : 'Koppelen';
+      document.getElementById('sync-card').style.display = linked ? '' : 'none';
+
+      if (linked) {
+        document.getElementById('gc-email').value = '';
+        document.getElementById('gc-password').value = '';
+      }
+    }
+
+    async function connectGarmin() {
+      const email = document.getElementById('gc-email').value.trim();
+      const password = document.getElementById('gc-password').value;
+
+      if (!email || !password) {
+        showToast('Vul e-mail en wachtwoord in.', 'err');
+        return;
+      }
+
+      const btn = document.getElementById('btn-connect');
+      btn.disabled = true;
+      btn.textContent = 'Bezig…';
+
+      try {
+        await apiPost('/garmin/connect', { email, password });
+        showToast('Garmin Connect gekoppeld!', 'ok');
+        loadStatus();
+      } catch (e) {
+        showToast('Koppelen mislukt: ' + (e.message || 'onbekende fout'), 'err');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Koppelen';
+      }
+    }
+
+    async function disconnectGarmin() {
+      if (!confirm('Weet je zeker dat je Garmin Connect wilt ontkoppelen?')) return;
+
+      try {
+        await fetch(API + '/garmin/connect', {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + getToken() },
+        });
+        showToast('Garmin Connect ontkoppeld.', 'ok');
+        loadStatus();
+      } catch (e) {
+        showToast('Ontkoppelen mislukt.', 'err');
+      }
+    }
+
+    async function syncNow() {
+      const btn = document.getElementById('btn-sync');
+      const btnText = document.getElementById('btn-sync-text');
+      btn.disabled = true;
+      btnText.innerHTML = '<span class="spinner-inline"></span> Synchroniseren…';
+
+      try {
+        const res = await apiPost('/garmin/sync', {});
+        showToast(res.message || 'Sync gestart!', 'ok');
+        // Poll for completion
+        setTimeout(() => loadStatus(), 5000);
+      } catch (e) {
+        showToast('Sync mislukt: ' + (e.message || 'onbekende fout'), 'err');
+      } finally {
+        btn.disabled = false;
+        btnText.textContent = 'Nu synchroniseren';
+      }
+    }
+
+    function showToast(msg, type) {
+      const el = document.getElementById('toast');
+      el.innerHTML = `<div class="toast toast-${type}">${msg}</div>`;
+      setTimeout(() => { el.innerHTML = ''; }, 4000);
+    }
+
+    loadStatus();
+  </script>
+</body>
+</html>

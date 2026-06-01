@@ -89,6 +89,15 @@ function initDb(dbPath) {
       granted_at TEXT    NOT NULL DEFAULT (datetime('now')),
       PRIMARY KEY (series_id, user_id)
     );
+
+    CREATE TABLE IF NOT EXISTS garmin_links (
+      id                INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id           INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+      encrypted_email   TEXT    NOT NULL,
+      encrypted_password TEXT   NOT NULL,
+      last_sync_at      TEXT,
+      created_at        TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
   `);
 
   // Migrations
@@ -98,6 +107,8 @@ function initDb(dbPath) {
   try { db.exec(`ALTER TABLE users ADD COLUMN boat_name TEXT`); } catch (_) {}
   try { db.exec(`ALTER TABLE users ADD COLUMN team_name TEXT`); } catch (_) {}
   try { db.exec(`ALTER TABLE users ADD COLUMN is_super_admin INTEGER NOT NULL DEFAULT 0`); } catch (_) {}
+  // Backfill: create garmin_links if missing
+  db.exec('CREATE TABLE IF NOT EXISTS garmin_links (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE, encrypted_email TEXT NOT NULL, encrypted_password TEXT NOT NULL, last_sync_at TEXT, created_at TEXT NOT NULL DEFAULT (datetime(\'now\')))');
 
   return db;
 }
