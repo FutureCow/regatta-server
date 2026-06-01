@@ -271,7 +271,7 @@
         const data = await apiDelete('/races/' + id);
         console.log('race deleted:', data);
         await loadAll();
-      } catch (e) { console.error('delRace failed:', e); alert('Fout: ' + e.message); }
+      } catch (e) { console.error('delRace failed:', e, '| type:', typeof e, '| stack:', e.stack); alert('Fout: ' + (e.message || JSON.stringify(e))); }
     }
 
     // ── Add race to series ─────────────────────────────────────────────────
