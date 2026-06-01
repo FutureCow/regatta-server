@@ -239,11 +239,11 @@
     async function delSeries(id) {
       if (!confirm('Reeks verwijderen? Wedstrijden blijven bewaard.')) return;
       try {
-        await fetch(API + '/series/' + id, {
-          method: 'DELETE', headers: { 'Authorization': 'Bearer ' + getToken() },
-        });
+        console.log('DELETE /api/series/' + id);
+        const data = await apiDelete('/series/' + id);
+        console.log('series deleted:', data);
         await loadAll();
-      } catch (e) { alert('Fout: ' + e.message); }
+      } catch (e) { console.error('delSeries failed:', e); alert('Fout: ' + e.message); }
     }
 
     // ── Add standalone race ────────────────────────────────────────────────
@@ -267,11 +267,11 @@
     async function delRace(id) {
       if (!confirm('Wedstrijd verwijderen?')) return;
       try {
-        await fetch(API + '/races/' + id, {
-          method: 'DELETE', headers: { 'Authorization': 'Bearer ' + getToken() },
-        });
+        console.log('DELETE /api/races/' + id);
+        const data = await apiDelete('/races/' + id);
+        console.log('race deleted:', data);
         await loadAll();
-      } catch (e) { alert('Fout: ' + e.message); }
+      } catch (e) { console.error('delRace failed:', e); alert('Fout: ' + e.message); }
     }
 
     // ── Add race to series ─────────────────────────────────────────────────
