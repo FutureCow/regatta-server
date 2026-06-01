@@ -446,7 +446,7 @@
       return userTrack ? (userTrack.series_class_name || userTrack.class_name) : null;
     }
 
-    function onClassChange(cls) {
+    async function onClassChange(cls) {
       currentClass = cls || null;
       sessionStorage.setItem('compareClass', currentClass || '');
       // Reset to first boat in this class
@@ -458,7 +458,7 @@
       playbackIdx = 0;
       if (document.getElementById('playback-slider')) document.getElementById('playback-slider').value = 0;
       document.getElementById('time-display') && (document.getElementById('time-display').textContent = '00:00');
-      loadTrackOnMap(activeTrackIdx);
+      await loadTrackOnMap(activeTrackIdx);
       drawSpeedChart(activeTrackIdx);
       updateInfoPanel(activeTrackIdx);
       // Re-render boat list
@@ -529,7 +529,7 @@
           return !currentClass || name === currentClass;
         });
         activeTrackIdx = firstIdx >= 0 ? firstIdx : 0;
-        loadTrackOnMap(activeTrackIdx);
+        await loadTrackOnMap(activeTrackIdx);
         drawSpeedChart(activeTrackIdx);
         updateInfoPanel(activeTrackIdx);
 
@@ -751,7 +751,42 @@
       return [];
     }
 
-    function loadTrackOnMap(idx) {
+    async function fetchTrackPoints(track) {
+      if (track._points) return track._points; // cached
+      if (track._fetching) return track._fetching; // in-flight
+      try {
+        track._fetching = apiGet('/tracks/' + track.id + '/points');
+        const data = await track._fetching;
+        track._points = data.points || [];
+        track._maxSpeedKn = data.max_speed_kn || track.max_speed_knots || 0;
+        delete track._fetching;
+        return track._points;
+      } catch (e) {
+        console.error('fetchTrackPoints failed for track', track.id, e);
+        delete track._fetching;
+        return [];
+      }
+    }
+
+    function getRealSpeedData(track) {
+      const pts = track._points;
+      if (!pts || !pts.length) return null;
+      return pts.map(p => p.speed_kn != null ? p.speed_kn : 0);
+    }
+
+    function getRealMaxSpeed(track) {
+      const data = getRealSpeedData(track);
+      return data ? Math.max(...data, 0.1) : null;
+    }
+
+    function getPlaybackCoords(track) {
+      if (track._points && track._points.length > 0) {
+        return track._points.map(p => [p.lat, p.lon]);
+      }
+      return track._demoCoords || parseTrackCoords(track);
+    }
+
+    async function loadTrackOnMap(idx) {
       trackLines.forEach(l => map.removeLayer(l));
       trackLines = [];
       boatMarkers.forEach(m => map.removeLayer(m));
@@ -760,9 +795,12 @@
       if (!tracks.length || idx >= tracks.length) return;
 
       const track = tracks[idx];
-      const coords = parseTrackCoords(track);
 
-      if (coords.length < 2) {
+      // Fetch real points from API
+      const points = await fetchTrackPoints(track);
+
+      if (!points || points.length < 2) {
+        // Fallback: generate demo track (no real GPX available)
         const center = [52.0, 4.5];
         const demo = generateSailingTrack(center);
         const line = L.polyline(demo, {
@@ -783,6 +821,12 @@
         track._demoCoords = demo;
         return;
       }
+
+      // Real track from GPX data
+      const coords = points.map(p => [p.lat, p.lon]);
+      // Update slider max to match actual point count
+      const ptsSlider = document.getElementById('playback-slider');
+      if (ptsSlider) ptsSlider.max = coords.length - 1;
 
       const line = L.polyline(coords, {
         color: BOAT_COLORS[idx % BOAT_COLORS.length],
@@ -846,13 +890,21 @@
       return speeds;
     }
 
-    // Cache speed data per track so it never regenerates
+    // Cache speed data per track — prefer real GPX data, fall back to generated
     function getSpeedData(track) {
-      if (!track._speedData) {
-        track._speedData = generateSpeedData(track);
-        // Cache the max once — never changes for this track
-        track._speedMax = Math.max(...track._speedData, 2);
+      if (track._speedData) return track._speedData;
+
+      // Try real speed data from fetched GPX points first
+      const realSpeeds = getRealSpeedData(track);
+      if (realSpeeds && realSpeeds.length > 0) {
+        track._speedData = realSpeeds;
+        track._speedMax = Math.max(...realSpeeds, 0.1);
+        return track._speedData;
       }
+
+      // Fallback: generated data
+      track._speedData = generateSpeedData(track);
+      track._speedMax = Math.max(...track._speedData, 2);
       return track._speedData;
     }
 
@@ -955,19 +1007,27 @@
 
       const speedData = getSpeedData(track);
       const maxK = getSpeedMax(track);
-      const avgK = speedData.reduce((a, b) => a + b, 0) / speedData.length;
-      const distNm = (speedData.length * 0.005).toFixed(1);
-      const duration = (speedData.length * 5);
+      const avgK = speedData.length > 0
+        ? speedData.reduce((a, b) => a + b, 0) / speedData.length
+        : 0;
+      const distNm = track.distance_meters != null
+        ? (track.distance_meters / 1852).toFixed(1)
+        : '—';
+      const durationSec = track.duration_seconds != null
+        ? track.duration_seconds
+        : (speedData.length * 5);
 
-      document.getElementById('info-speed').textContent = speedData[0].toFixed(1) + ' kn';
-      document.getElementById('info-heading').textContent = Math.round(Math.random() * 360) + '°';
+      document.getElementById('info-speed').textContent =
+        (speedData.length > 0 ? speedData[0].toFixed(1) : '—') + ' kn';
+      document.getElementById('info-heading').textContent =
+        track.wind_direction_deg != null ? track.wind_direction_deg + '°' : '—';
       document.getElementById('info-maxspeed').textContent = maxK.toFixed(1) + ' kn';
       document.getElementById('info-avg').textContent = avgK.toFixed(1) + ' kn';
-      document.getElementById('info-dist').textContent = distNm;
-      document.getElementById('info-duration').textContent = fmtDuration(duration);
+      document.getElementById('info-dist').textContent = distNm + ' nm';
+      document.getElementById('info-duration').textContent = fmtDuration(durationSec);
     }
 
-    function selectBoat(idx) {
+    async function selectBoat(idx) {
       if (idx === activeTrackIdx) return;
       activeTrackIdx = idx;
 
@@ -985,7 +1045,7 @@
         }
       });
 
-      loadTrackOnMap(idx);
+      await loadTrackOnMap(idx);
       drawSpeedChart(idx);
       updateInfoPanel(idx);
       playbackIdx = 0;
@@ -1021,14 +1081,21 @@
 
     function updatePlaybackPosition() {
       const track = tracks[activeTrackIdx];
-      const coords = track._demoCoords || parseTrackCoords(track);
+      const coords = getPlaybackCoords(track);
       if (!coords.length) return;
 
-      const idx2 = Math.min(playbackIdx, coords.length - 1);
+      // Map playbackIdx (0..max) proportionally to point index
+      const slider = document.getElementById('playback-slider');
+      const sliderMax = parseInt(slider.max) || 100;
+      const sliderPct = sliderMax > 0 ? playbackIdx / sliderMax : 0;
+      const idx2 = Math.min(Math.floor(sliderPct * (coords.length - 1)), coords.length - 1);
       const pos = coords[idx2];
-      const t = Math.floor(playbackIdx * 5);
-      const mins = Math.floor(t / 60);
-      const secs = t % 60;
+
+      // Time based on proportion of total duration
+      const durationSec = track.duration_seconds || (coords.length * 5);
+      const elapsedSec = Math.floor(sliderPct * durationSec);
+      const mins = Math.floor(elapsedSec / 60);
+      const secs = elapsedSec % 60;
       document.getElementById('time-display').textContent =
         String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
 
@@ -1085,7 +1152,7 @@
       playbackTimer = setInterval(() => {
         const slider = document.getElementById('playback-slider');
         playbackIdx++;
-        if (playbackIdx > 100) {
+        if (playbackIdx > parseInt(slider.max || 100)) {
           clearInterval(playbackTimer);
           playbackTimer = null;
           btn.textContent = '▶';

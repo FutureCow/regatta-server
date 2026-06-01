@@ -302,6 +302,84 @@ function createTracksRouter(db, tracksDir) {
     fs.createReadStream(filePath).pipe(res);
   });
 
+  // ── GET /:id/points — parsed GPX punten (coördinaten + snelheid) ────────
+  router.get('/:id/points', (req, res) => {
+    const track = db
+      .prepare('SELECT * FROM tracks WHERE id = ? AND user_id = ?')
+      .get(req.params.id, req.userId);
+
+    if (!track) {
+      return res.status(404).json({ error: 'Track niet gevonden.' });
+    }
+
+    const filePath = path.join(tracksDir, String(req.userId), track.filename);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'GPX-bestand niet gevonden op schijf.' });
+    }
+
+    try {
+      const xml = fs.readFileSync(filePath, 'utf8');
+      const parser = new XMLParser({
+        ignoreAttributes: false,
+        attributeNamePrefix: '',
+        textNodeName: '_text',
+        isArray: (name) => name === 'trkpt' || name === 'trkseg' || name === 'trk',
+      });
+      const gpx = parser.parse(xml);
+      const trk = gpx.gpx?.trk;
+      if (!trk) return res.status(422).json({ error: 'Geen track data in GPX.' });
+
+      const segments = Array.isArray(trk) ? trk.flatMap(t => t.trkseg || []) : (trk.trkseg || []);
+      const rawPoints = [];
+      for (const seg of segments) {
+        if (seg.trkpt) rawPoints.push(...seg.trkpt);
+      }
+
+      if (rawPoints.length < 2) return res.status(422).json({ error: 'Te weinig punten in GPX.' });
+
+      const points = [];
+      let maxSpd = 0;
+
+      for (let j = 0; j < rawPoints.length; j++) {
+        const pt = rawPoints[j];
+        const lat = parseFloat(pt.lat);
+        const lon = parseFloat(pt.lon);
+        const time = pt.time?._text || pt.time || null;
+        const ele = pt.ele?._text != null ? parseFloat(pt.ele._text) : (pt.ele != null ? parseFloat(pt.ele) : null);
+
+        const entry = { lat, lon };
+        if (time) entry.time = time;
+        if (ele != null) entry.ele = ele;
+
+        // Speed to previous point
+        if (j > 0 && time && points[j - 1].time) {
+          const dist = haversine(points[j - 1].lat, points[j - 1].lng, lat, lon);
+          const dt = (new Date(time) - new Date(points[j - 1].time)) / 1000;
+          if (dt > 0) {
+            const speedKn = (dist / 1852) / (dt / 3600);
+            entry.speed_kn = Math.round(speedKn * 10) / 10;
+            if (speedKn > maxSpd) maxSpd = speedKn;
+          }
+        }
+
+        points.push(entry);
+      }
+
+      return res.json({
+        id: track.id,
+        name: track.name,
+        filename: track.filename,
+        recorded_at: track.recorded_at,
+        points,
+        point_count: points.length,
+        max_speed_kn: Math.round(maxSpd * 10) / 10,
+      });
+    } catch (e) {
+      console.error('Track points parse error:', e);
+      return res.status(500).json({ error: `Fout bij parsen: ${e.message}` });
+    }
+  });
+
   // ── DELETE /:id — delete track ─────────────────────────────────────────
   router.delete('/:id', (req, res) => {
     const track = db
