@@ -534,6 +534,7 @@
     }
 
     function openRace(id) {
+      console.log('openRace clicked, storing raceId:', id);
       sessionStorage.setItem('raceId', id);
       window.location.href = 'race.html';
     }
