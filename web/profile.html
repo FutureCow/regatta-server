@@ -95,9 +95,15 @@
     }
 
     async function saveProfile() {
-      const boat_type = document.getElementById('pf-boat-type').value.trim() || null;
-      const boat_name = document.getElementById('pf-boat-name').value.trim() || null;
-      const team_name = document.getElementById('pf-team-name').value.trim() || null;
+      const boat_type = document.getElementById('pf-boat-type').value.trim();
+      const boat_name = document.getElementById('pf-boat-name').value.trim();
+      const team_name = document.getElementById('pf-team-name').value.trim();
+
+      // Only send fields that have a value (missing = don't touch in DB)
+      const body = {};
+      if (boat_type) body.boat_type = boat_type;
+      if (boat_name) body.boat_name = boat_name;
+      if (team_name) body.team_name = team_name;
 
       try {
         const res = await fetch(API + '/auth/profile', {
@@ -106,7 +112,7 @@
             'Content-Type': 'application/json',
             'Authorization': 'Bearer ' + getToken(),
           },
-          body: JSON.stringify({ boat_type, boat_name, team_name }),
+          body: JSON.stringify(body),
         });
         if (!res.ok) throw new Error('Mislukt');
         showToast('Profiel opgeslagen!', 'ok');

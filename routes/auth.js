@@ -73,6 +73,7 @@ function createAuthRouter(db) {
   });
 
   // ── PUT /api/auth/profile ──────────────────────────────────────────────────
+  // Only updates fields that are present in the body (null = clear, missing = don't touch)
   router.put('/profile', (req, res) => {
     const authHeader = req.headers['authorization'];
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -87,9 +88,24 @@ function createAuthRouter(db) {
       return res.status(401).json({ error: 'Token ongeldig.' });
     }
 
-    const { boat_type, boat_name, team_name } = req.body || {};
-    db.prepare('UPDATE users SET boat_type = ?, boat_name = ?, team_name = ? WHERE id = ?')
-      .run(boat_type ?? null, boat_name ?? null, team_name ?? null, payload.sub);
+    const body = req.body || {};
+    const allowed = ['boat_type', 'boat_name', 'team_name'];
+    const sets = [];
+    const vals = [];
+
+    for (const field of allowed) {
+      if (field in body) {
+        sets.push(`${field} = ?`);
+        vals.push(body[field] ?? null);
+      }
+    }
+
+    if (sets.length === 0) {
+      return res.status(400).json({ error: 'Geen velden om te updaten.' });
+    }
+
+    vals.push(payload.sub);
+    db.prepare(`UPDATE users SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
 
     return res.json({ ok: true });
   });
