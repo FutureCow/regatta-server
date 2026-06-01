@@ -428,6 +428,17 @@
     let playbackTimer = null;
     let playbackSpeed = 1;
     let playbackIdx = 0;
+
+    function getPlaybackInterval() {
+      // Real-time: 1x = race duurt even lang als in het echt
+      const track = tracks[activeTrackIdx];
+      if (!track) return 100;
+      const pointCount = (track._points && track._points.length) || track.point_count || 120;
+      if (pointCount < 2) return 100;
+      const durationSec = track.duration_seconds || pointCount; // fallback: 1s/punt
+      const realTimeMsPerPoint = (durationSec / pointCount) * 1000;
+      return Math.max(realTimeMsPerPoint / playbackSpeed, 16); // min 16ms (≈60fps)
+    }
     let currentClass = null; // selected class name, null = all
 
     function getAvailableClasses(trackList) {
@@ -579,7 +590,7 @@
                 }
                 slider.value = playbackIdx;
                 updatePlaybackPosition();
-              }, 100 / playbackSpeed);
+              }, getPlaybackInterval());
             }
           });
         });
@@ -721,6 +732,7 @@
           <button class="speed-btn active" data-speed="1">1×</button>
           <button class="speed-btn" data-speed="2">2×</button>
           <button class="speed-btn" data-speed="5">5×</button>
+          <button class="speed-btn" data-speed="10">10×</button>
         </div>
 
         <div class="map-section">
@@ -1203,7 +1215,7 @@
         }
         slider.value = playbackIdx;
         updatePlaybackPosition();
-      }, 100 / playbackSpeed);
+      }, getPlaybackInterval());
     }
 
     // ── Load individual track ────────────────────────────────────────────
