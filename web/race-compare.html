@@ -327,8 +327,10 @@
         initMap();
         renderCompare();
       } catch (e) {
+        console.error('loadCompare failed:', e.message || e);
+        const msg = e.message || 'onbekende fout';
         document.getElementById('compare-content').innerHTML =
-          '<div class="loading-state"><p>Kon gegevens niet laden. <a href="dashboard.html">Ga terug</a>.</p></div>';
+          '<div class="loading-state"><p>Kon gegevens niet laden: <code>' + escHtml(msg) + '</code>. <a href="dashboard.html">Ga terug</a>.</p></div>';
       }
     }
 
