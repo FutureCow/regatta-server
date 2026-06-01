@@ -427,6 +427,53 @@
     let playbackTimer = null;
     let playbackSpeed = 1;
     let playbackIdx = 0;
+    let currentClass = null; // selected class name, null = all
+
+    function getAvailableClasses(trackList) {
+      const seen = new Set();
+      const classes = [];
+      for (const t of trackList) {
+        const name = t.series_class_name || t.class_name;
+        if (name && !seen.has(name)) { seen.add(name); classes.push(name); }
+      }
+      return classes.sort();
+    }
+
+    function findUserClass(trackList) {
+      const email = getEmail();
+      const userTrack = trackList.find(t => t.user_email === email);
+      return userTrack ? (userTrack.series_class_name || userTrack.class_name) : null;
+    }
+
+    function onClassChange(cls) {
+      currentClass = cls || null;
+      sessionStorage.setItem('compareClass', currentClass || '');
+      // Reset to first boat in this class
+      const first = tracks.findIndex(t => {
+        const name = t.series_class_name || t.class_name;
+        return !currentClass || name === currentClass;
+      });
+      activeTrackIdx = first >= 0 ? first : 0;
+      playbackIdx = 0;
+      if (document.getElementById('playback-slider')) document.getElementById('playback-slider').value = 0;
+      document.getElementById('time-display') && (document.getElementById('time-display').textContent = '00:00');
+      loadTrackOnMap(activeTrackIdx);
+      drawSpeedChart(activeTrackIdx);
+      updateInfoPanel(activeTrackIdx);
+      // Re-render boat list
+      const boatList = document.getElementById('boat-list');
+      if (boatList) boatList.innerHTML = renderBoatList(tracks);
+      // Update class dropdown
+      const sel = document.getElementById('class-select');
+      if (sel) sel.value = currentClass || '';
+      // Rebind click handlers
+      document.querySelectorAll('.boat-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const idx = parseInt(el.dataset.idx);
+          selectBoat(idx);
+        });
+      });
+    }
 
     function switchRace(newRaceId) {
       sessionStorage.setItem('raceId', newRaceId);
@@ -465,13 +512,25 @@
 
         document.getElementById('breadcrumb-race').textContent = race.name || race.label || 'Race #' + raceId;
 
-        container.innerHTML = buildRaceHTML(race, raceTracks, seriesRaces);
         tracks = Array.isArray(raceTracks) ? raceTracks : [];
 
+        // Set default class: user's own class, or first available
+        const userClass = findUserClass(tracks);
+        const allClasses = getAvailableClasses(tracks);
+        currentClass = userClass || (allClasses.length > 0 ? allClasses[0] : null);
+        sessionStorage.setItem('compareClass', currentClass || '');
+
+        container.innerHTML = buildRaceHTML(race, tracks, seriesRaces);
         initMap();
-        loadTrackOnMap(0);
-        drawSpeedChart(0);
-        updateInfoPanel(0);
+        // Start with first boat in the selected class
+        const firstIdx = tracks.findIndex(t => {
+          const name = t.series_class_name || t.class_name;
+          return !currentClass || name === currentClass;
+        });
+        activeTrackIdx = firstIdx >= 0 ? firstIdx : 0;
+        loadTrackOnMap(activeTrackIdx);
+        drawSpeedChart(activeTrackIdx);
+        updateInfoPanel(activeTrackIdx);
 
         document.querySelectorAll('.boat-item').forEach(el => {
           el.addEventListener('click', () => {
@@ -504,11 +563,18 @@
     }
 
     function renderBoatList(raceTracks) {
-      // Group tracks by class
+      // Filter by selected class
+      const filtered = (raceTracks || []).filter(t => {
+        if (!currentClass) return true;
+        const name = t.series_class_name || t.class_name;
+        return name === currentClass;
+      });
+
+      // Group by class
       const groups = {};
       const ungrouped = [];
-      (raceTracks || []).forEach((t, i) => {
-        t._origIdx = i;
+      filtered.forEach((t, i) => {
+        t._origIdx = (raceTracks || []).indexOf(t); // preserve raw index
         const clsName = t.series_class_name || t.class_name;
         if (clsName) {
           if (!groups[clsName]) groups[clsName] = [];
@@ -565,7 +631,12 @@
 
     function buildRaceHTML(race, raceTracks, seriesRaces) {
       const date = fmtDate(race.created_at || race.date);
-      const trackCount = (raceTracks || []).length;
+      const filteredCount = (raceTracks || []).filter(t => {
+        if (!currentClass) return true;
+        const name = t.series_class_name || t.class_name;
+        return name === currentClass;
+      }).length;
+      const totalCount = (raceTracks || []).length;
 
       // Build series race switcher dropdown
       let seriesSwitcher = '';
@@ -581,12 +652,29 @@
           </div>`;
       }
 
+      // Build class dropdown
+      const classes = getAvailableClasses(raceTracks || []);
+      let classSwitcher = '';
+      if (classes.length > 1) {
+        const classOpts = classes.map(c =>
+          `<option value="${escHtml(c)}" ${c === currentClass ? 'selected' : ''}>${escHtml(c)}</option>`
+        ).join('');
+        classSwitcher = `
+          <div class="series-switcher" style="margin-top:6px">
+            <select id="class-select" onchange="onClassChange(this.value)" style="padding:5px 10px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--fg);max-width:280px;cursor:pointer">
+              ${classOpts}
+            </select>
+            <span style="font-size:11px;color:var(--muted);margin-left:6px">klasse</span>
+          </div>`;
+      }
+
       return `
         <div class="race-header">
           <div>
             <h2>${escHtml(race.name || race.label || 'Race #' + race.id)}</h2>
-            <div class="race-meta">${date} · ${trackCount} boot${trackCount !== 1 ? 'en' : ''}</div>
+            <div class="race-meta">${date} · ${filteredCount}/${totalCount} boten</div>
             ${seriesSwitcher}
+            ${classSwitcher}
           </div>
           <div class="race-actions">
             <button class="btn btn-secondary btn-sm" onclick="window.location.href='race-compare.html'">Vergelijk boten</button>

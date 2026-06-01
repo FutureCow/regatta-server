@@ -230,19 +230,67 @@
 
     // ── State ──
     let map;
-    let tracks = [];            // raw /tracks response
-    let compareData = [];       // /compare-data response (GPX parsed)
+    let allTracks = [];          // all tracks from API (unfiltered)
+    let tracks = [];             // class-filtered tracks
+    let compareData = [];        // /compare-data response (GPX parsed)
     let selectedBoatIdx = [0, 1];
     let renderedLines = [];
-    let boatMarkers = [];       // Leaflet circle markers
+    let boatMarkers = [];        // Leaflet circle markers
+    let currentClass = null;
 
     // Playback state
     let playing = false;
-    let currentTime = 0;        // seconds from totalTimelineStart
-    let totalDuration = 0;      // total timeline duration across all tracks
+    let currentTime = 0;
+    let totalDuration = 0;
     let playSpeed = 1;
     let animFrameId = null;
     let lastFrameTs = null;
+
+    function getAvailableClasses(trackList) {
+      const seen = new Set();
+      const classes = [];
+      for (const t of trackList) {
+        const name = t.series_class_name || t.class_name;
+        if (name && !seen.has(name)) { seen.add(name); classes.push(name); }
+      }
+      return classes.sort();
+    }
+
+    function findUserClass(trackList) {
+      const email = getEmail();
+      const userTrack = trackList.find(t => t.user_email === email);
+      return userTrack ? (userTrack.series_class_name || userTrack.class_name) : null;
+    }
+
+    function applyClassFilter() {
+      if (!currentClass) {
+        tracks = [...allTracks];
+      } else {
+        tracks = allTracks.filter(t => {
+          const name = t.series_class_name || t.class_name;
+          return name === currentClass;
+        });
+      }
+      if (tracks.length < 2) return false;
+      selectedBoatIdx = [0, Math.min(1, tracks.length - 1)];
+      return true;
+    }
+
+    function onClassChange(cls) {
+      currentClass = cls || null;
+      sessionStorage.setItem('compareClass', currentClass || '');
+      stopPlayback();
+      currentTime = 0;
+      if (!applyClassFilter()) {
+        document.getElementById('compare-content').innerHTML = `
+          <div class="loading-state">
+            <p>Minder dan 2 boten in deze klasse om te vergelijken.</p>
+            <p style="margin-top:12px"><a href="race.html">Terug naar race</a></p>
+          </div>`;
+        return;
+      }
+      fetchCompareData().then(() => renderCompare());
+    }
 
     /* ────────────────────────────────────────────────────────────────
        LOADING
@@ -257,18 +305,22 @@
 
       try {
         const raceTracks = await apiGet('/races/' + raceId + '/tracks') || [];
-        tracks = Array.isArray(raceTracks) ? raceTracks : [];
+        allTracks = Array.isArray(raceTracks) ? raceTracks : [];
 
-        if (tracks.length < 2) {
+        // Set default class from sessionStorage, user's class, or first class
+        const savedClass = sessionStorage.getItem('compareClass');
+        const userClass = findUserClass(allTracks);
+        const allClasses = getAvailableClasses(allTracks);
+        currentClass = savedClass || userClass || (allClasses.length > 0 ? allClasses[0] : null);
+
+        if (!applyClassFilter() || tracks.length < 2) {
           document.getElementById('compare-content').innerHTML = `
             <div class="loading-state">
-              <p>Er zijn minimaal 2 boten nodig om te vergelijken. Deze race heeft ${tracks.length} boot${tracks.length !== 1 ? 'en' : ''}.</p>
+              <p>Minder dan 2 boten in deze klasse om te vergelijken.</p>
               <p style="margin-top:12px"><a href="race.html">Terug naar race</a></p>
             </div>`;
           return;
         }
-
-        selectedBoatIdx = [0, Math.min(1, tracks.length - 1)];
 
         document.getElementById('breadcrumb-race-link').href = 'race.html';
         await fetchCompareData();
@@ -311,8 +363,21 @@
        ──────────────────────────────────────────────────────────────── */
 
     function renderCompare() {
+      const classes = getAvailableClasses(allTracks);
+      let classSwitcher = '';
+      if (classes.length > 1) {
+        classSwitcher = `
+          <div style="margin-bottom:16px">
+            <select id="class-select" onchange="onClassChange(this.value)" style="padding:5px 10px;font-size:13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--fg);max-width:280px;cursor:pointer">
+              ${classes.map(c => `<option value="${escHtml(c)}" ${c === currentClass ? 'selected' : ''}>${escHtml(c)}</option>`).join('')}
+            </select>
+            <span style="font-size:11px;color:var(--muted);margin-left:6px">klasse</span>
+          </div>`;
+      }
+
       const content = document.getElementById('compare-content');
       content.innerHTML = `
+        ${classSwitcher}
         <div class="track-selector" id="track-selector">
           ${tracks.map((t, i) => {
             const selected = selectedBoatIdx.includes(i);
