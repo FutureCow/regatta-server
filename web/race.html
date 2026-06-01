@@ -207,6 +207,26 @@
       padding: 10px 14px;
     }
 
+    /* Boat tooltip styling */
+    .boat-tooltip {
+      background: rgba(0,0,0,0.75) !important;
+      border: none !important;
+      border-radius: 6px !important;
+      color: #fff !important;
+      font-family: var(--font-mono) !important;
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      padding: 4px 8px !important;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
+    }
+    .boat-tooltip::before { display: none !important; }
+
+    /* Boat icon — remove default Leaflet styling */
+    .boat-icon {
+      background: transparent !important;
+      border: none !important;
+    }
+
     /* ── Playback controls ── */
     .playback-bar {
       display: flex;
@@ -661,13 +681,9 @@
         map.fitBounds(line.getBounds().pad(0.1));
 
         const end = demo[demo.length - 1];
-        const marker = L.circleMarker(end, {
-          radius: 6,
-          color: BOAT_COLORS[idx % BOAT_COLORS.length],
-          fillColor: '#fff',
-          fillOpacity: 1,
-          weight: 2,
-        }).addTo(map);
+        const heading = calcHeading(demo[demo.length - 2][0], demo[demo.length - 2][1], end[0], end[1]);
+        const icon = createBoatIcon(BOAT_COLORS[idx % BOAT_COLORS.length], heading);
+        const marker = L.marker(end, { icon }).addTo(map);
         marker.bindTooltip('Finish', { direction: 'top' });
         boatMarkers.push(marker);
 
@@ -685,13 +701,12 @@
 
       if (coords.length > 0) {
         const end = coords[coords.length - 1];
-        const marker = L.circleMarker(end, {
-          radius: 6,
-          color: BOAT_COLORS[idx % BOAT_COLORS.length],
-          fillColor: '#fff',
-          fillOpacity: 1,
-          weight: 2,
-        }).addTo(map);
+        let heading = 0;
+        if (coords.length >= 2) {
+          heading = calcHeading(coords[coords.length - 2][0], coords[coords.length - 2][1], end[0], end[1]);
+        }
+        const icon = createBoatIcon(BOAT_COLORS[idx % BOAT_COLORS.length], heading);
+        const marker = L.marker(end, { icon }).addTo(map);
         marker.bindTooltip('Finish', { direction: 'top' });
         boatMarkers.push(marker);
       }
@@ -865,6 +880,16 @@
 
       document.querySelectorAll('.boat-item').forEach((el, i) => {
         el.classList.toggle('active-boat', i === idx);
+        // Reset boat stats to static avg/max
+        if (i < tracks.length) {
+          const t = tracks[i];
+          const statsEl = el.querySelector('.boat-stats');
+          if (statsEl) {
+            statsEl.innerHTML = `
+              <div class="boat-s"><div class="v">${t.avg_speed_knots != null ? t.avg_speed_knots.toFixed(1) : '—'} kn</div><div class="l">gem</div></div>
+              <div class="boat-s"><div class="v">${t.max_speed_knots != null ? t.max_speed_knots.toFixed(1) : '—'} kn</div><div class="l">max</div></div>`;
+          }
+        }
       });
 
       loadTrackOnMap(idx);
@@ -874,6 +899,31 @@
       const slider = document.getElementById('playback-slider');
       if (slider) slider.value = 0;
       document.getElementById('time-display').textContent = '00:00';
+    }
+
+    // ── Boat icon ───────────────────────────────────────────────────────
+    function createBoatIcon(color, headingDeg) {
+      const h = headingDeg != null ? headingDeg : 0;
+      return L.divIcon({
+        className: 'boat-icon',
+        html: `<svg viewBox="-10 -12 20 24" width="24" height="28" style="transform:rotate(${h}deg);filter:drop-shadow(0 1px 2px rgba(0,0,0,0.3))">
+          <polygon points="0,-11 -8,5 0,2 8,5" fill="${color}" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>`,
+        iconSize: [24, 28],
+        iconAnchor: [12, 14],
+        tooltipAnchor: [0, -16],
+      });
+    }
+
+    // Calculate heading between two coordinates (degrees from north)
+    function calcHeading(lat1, lon1, lat2, lon2) {
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const lat1r = lat1 * Math.PI / 180;
+      const lat2r = lat2 * Math.PI / 180;
+      const y = Math.sin(dLon) * Math.cos(lat2r);
+      const x = Math.cos(lat1r) * Math.sin(lat2r) - Math.sin(lat1r) * Math.cos(lat2r) * Math.cos(dLon);
+      let deg = Math.atan2(y, x) * 180 / Math.PI;
+      return (deg + 360) % 360;
     }
 
     function updatePlaybackPosition() {
@@ -889,17 +939,42 @@
       document.getElementById('time-display').textContent =
         String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
 
+      // Calculate heading from current to next point
+      let heading = 0;
+      if (idx2 + 1 < coords.length) {
+        heading = calcHeading(pos[0], pos[1], coords[idx2 + 1][0], coords[idx2 + 1][1]);
+      } else if (idx2 > 0) {
+        heading = calcHeading(coords[idx2 - 1][0], coords[idx2 - 1][1], pos[0], pos[1]);
+      }
+
+      // Live speed from speed data
+      const speedData = getSpeedData(track);
+      const spd = speedData[Math.min(idx2, speedData.length - 1)];
+
+      const color = BOAT_COLORS[activeTrackIdx % BOAT_COLORS.length];
+
       boatMarkers.forEach(m => map.removeLayer(m));
       boatMarkers = [];
-      const marker = L.circleMarker(pos, {
-        radius: 7,
-        color: BOAT_COLORS[activeTrackIdx % BOAT_COLORS.length],
-        fillColor: '#fff',
-        fillOpacity: 1,
-        weight: 2.5,
-      }).addTo(map);
-      marker.bindTooltip((playbackIdx * 5) + 's', { direction: 'top' });
+      const icon = createBoatIcon(color, heading);
+      const marker = L.marker(pos, { icon }).addTo(map);
+      marker.bindTooltip(`${spd.toFixed(1)} kn · ${Math.round(heading)}°`, {
+        direction: 'top', offset: [0, -12], permanent: true,
+        className: 'boat-tooltip',
+      });
       boatMarkers.push(marker);
+
+      // Update active boat in list with live speed
+      document.querySelectorAll('.boat-item').forEach(el => {
+        const i = parseInt(el.dataset.idx);
+        if (i === activeTrackIdx) {
+          const statsEl = el.querySelector('.boat-stats');
+          if (statsEl) {
+            statsEl.innerHTML = `
+              <div class="boat-s"><div class="v">${spd.toFixed(1)} kn</div><div class="l">nu</div></div>
+              <div class="boat-s"><div class="v">${Math.round(heading)}°</div><div class="l">koers</div></div>`;
+          }
+        }
+      });
 
       drawSpeedChart(activeTrackIdx);
     }
@@ -923,6 +998,18 @@
           btn.textContent = '▶';
           playbackIdx = 0;
           slider.value = 0;
+          // Reset boat stats
+          document.querySelectorAll('.boat-item').forEach((el, i) => {
+            if (i < tracks.length) {
+              const t = tracks[i];
+              const statsEl = el.querySelector('.boat-stats');
+              if (statsEl) {
+                statsEl.innerHTML = `
+                  <div class="boat-s"><div class="v">${t.avg_speed_knots != null ? t.avg_speed_knots.toFixed(1) : '—'} kn</div><div class="l">gem</div></div>
+                  <div class="boat-s"><div class="v">${t.max_speed_knots != null ? t.max_speed_knots.toFixed(1) : '—'} kn</div><div class="l">max</div></div>`;
+              }
+            }
+          });
           updatePlaybackPosition();
           return;
         }
