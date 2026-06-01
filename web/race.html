@@ -558,7 +558,9 @@
         document.getElementById('play-btn')?.addEventListener('click', togglePlayback);
 
       } catch (e) {
-        container.innerHTML = '<div class="error-state"><p>Kon race niet laden. <a href="dashboard.html">Ga terug</a>.</p></div>';
+        console.error('loadRace failed:', e.message || e);
+        const msg = e.message || 'onbekende fout';
+        container.innerHTML = '<div class="error-state"><p>Kon race niet laden: <code>' + escHtml(msg) + '</code>. <a href="dashboard.html">Ga terug</a>.</p></div>';
       }
     }
 
