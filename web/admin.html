@@ -142,24 +142,6 @@
     <h2>Beheer <a href="info.html" style="font-size:14px;color:var(--muted);text-decoration:none;font-weight:400;margin-left:8px" title="Uitleg over de structuur">ⓘ Uitleg</a></h2>
     <p class="subtitle">Reeksen, wedstrijden en klassen</p>
 
-    <!-- ═══ Super Admin: Gebruikersbeheer ═══ -->
-    <div id="super-admin-sect" style="display:none">
-      <div class="sect">
-        <h3>Gebruikersbeheer</h3>
-        <p class="hint">Alleen zichtbaar voor super admins.</p>
-
-        <div class="frow" style="margin-bottom:16px">
-          <div class="fld"><label for="ua-email">E-mail</label><input id="ua-email" class="input" placeholder="zeiler@club.nl"></div>
-          <div class="fld"><label for="ua-pass">Wachtwoord</label><input id="ua-pass" class="input" type="password" placeholder="min. 6 tekens"></div>
-          <div class="fld" style="max-width:140px"><label for="ua-role">Rol</label><select id="ua-role"><option value="zeiler">Zeiler</option><option value="beheerder">Beheerder</option><option value="super_admin">Super Admin</option></select></div>
-          <div class="fld"><label for="ua-boat">Boot</label><input id="ua-boat" class="input" placeholder="Optioneel"></div>
-          <button class="btn btn-pri" onclick="createUser()" style="height:36px">Aanmaken</button>
-        </div>
-
-        <div id="user-list"><div class="loading-row"><div class="spinner"></div>Laden...</div></div>
-      </div>
-    </div>
-
     <!-- ═══ Nieuwe reeks ═══ -->
     <div class="sect" id="new-series-sect">
       <h3>+ Nieuwe reeks</h3>
@@ -487,64 +469,6 @@
 
     // ── Init ───────────────────────────────────────────────────────────────
     loadAll();
-
-    // ── Super Admin: Gebruikersbeheer ──────────────────────────────────────
-    if (isSuperAdmin) {
-      document.getElementById('super-admin-sect').style.display = 'block';
-      loadUsers();
-    }
-
-    async function loadUsers() {
-      try {
-        const users = await apiGet('/admin/users') || [];
-        const ctr = document.getElementById('user-list');
-        ctr.innerHTML = users.map(u => `
-          <div class="race-row" style="padding:8px 0">
-            <div style="flex:1;min-width:180px">
-              <div class="r-name">${escHtml(u.email)}</div>
-              <div class="r-date">${u.boatName ? escHtml(u.boatName) + ' · ' : ''}${u.trackCount} tracks · sinds ${fmtDate(u.createdAt)}</div>
-            </div>
-            <select onchange="changeRole(${u.id}, this.value)" style="padding:4px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--fg);max-width:130px">
-              <option value="zeiler" ${u.role === 'Zeiler' ? 'selected' : ''}>Zeiler</option>
-              <option value="beheerder" ${u.role === 'Beheerder' ? 'selected' : ''}>Beheerder</option>
-              <option value="super_admin" ${u.role === 'Super Admin' ? 'selected' : ''}>Super Admin</option>
-            </select>
-            <button class="btn-del" onclick="deleteUser(${u.id}, '${escHtml(u.email)}')">Verwijderen</button>
-          </div>
-        `).join('') || '<p class="text-muted">Geen gebruikers.</p>';
-      } catch (e) { document.getElementById('user-list').innerHTML = '<p class="text-muted">Fout bij laden: ' + escHtml(e.message) + '</p>'; }
-    }
-
-    async function createUser() {
-      const email = document.getElementById('ua-email').value.trim();
-      const password = document.getElementById('ua-pass').value;
-      const role = document.getElementById('ua-role').value;
-      const boat_name = document.getElementById('ua-boat').value.trim() || undefined;
-      if (!email || !password) return alert('E-mail en wachtwoord zijn verplicht.');
-      try {
-        await apiPost('/admin/users', { email, password, role, boat_name });
-        document.getElementById('ua-email').value = '';
-        document.getElementById('ua-pass').value = '';
-        document.getElementById('ua-boat').value = '';
-        await loadUsers();
-      } catch (e) { alert('Fout: ' + e.message); }
-    }
-
-    async function changeRole(userId, newRole) {
-      if (!confirm('Rol wijzigen naar "' + newRole + '"?')) { await loadUsers(); return; }
-      try {
-        await apiPut('/admin/users/' + userId + '/role', { role: newRole });
-        await loadUsers();
-      } catch (e) { alert('Fout: ' + e.message); await loadUsers(); }
-    }
-
-    async function deleteUser(userId, email) {
-      if (!confirm('Gebruiker "' + email + '" definitief verwijderen? Dit kan niet ongedaan gemaakt worden.')) return;
-      try {
-        await apiDelete('/admin/users/' + userId);
-        await loadUsers();
-      } catch (e) { alert('Fout: ' + e.message); }
-    }
   </script>
 </body>
 </html>

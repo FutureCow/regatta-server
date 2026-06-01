@@ -144,6 +144,7 @@ function renderHeader(title) {
       <a href="race.html" class="${title === 'race' ? 'active' : ''}">Race</a>
       <a href="race-compare.html" class="${title === 'compare' ? 'active' : ''}">Vergelijk</a>
       <a href="admin.html" class="${title === 'admin' ? 'active' : ''}" style="${isAdmin ? '' : 'display:none'}">Beheer</a>
+      <a href="super-admin.html" class="${title === 'super-admin' ? 'active' : ''}" style="${isSuperAdmin ? '' : 'display:none'}">Super Admin</a>
     </div>
     <div class="user-menu">
       <span class="email"><a href="profile.html" style="color:inherit;text-decoration:none">${email || ''}</a></span>

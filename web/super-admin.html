@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Regatta Screen — Super Admin</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .sa-page { max-width: 960px; margin: 0 auto; padding: 20px 24px 80px; width: 100%; }
+    .sa-page h2 {
+      font-family: var(--font-display); font-size: 26px; font-weight: 700;
+      letter-spacing: -0.02em; margin-bottom: 4px;
+    }
+    .sa-page .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+
+    .sect {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 22px 24px; margin-bottom: 16px;
+      box-shadow: 0 2px 12px rgba(0,10,30,0.04);
+    }
+    .sect h3 {
+      font-family: var(--font-display); font-size: 18px; font-weight: 700;
+      letter-spacing: -0.02em; margin-bottom: 4px;
+    }
+    .sect .hint { color: var(--muted); font-size: 13px; margin: 4px 0 16px; }
+
+    .frow { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 12px; }
+    .fld { flex: 1; min-width: 130px; display: flex; flex-direction: column; gap: 4px; }
+    .fld label {
+      font-size: 10px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--muted);
+    }
+    .fld .input, .fld select {
+      width: 100%; padding: 8px 10px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--fg); font-family: var(--font-body);
+      font-size: 13px; outline: none;
+    }
+    .fld .input:focus, .fld select:focus { border-color: var(--accent); }
+    .fld select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
+    }
+
+    .btn {
+      padding: 8px 16px; border-radius: var(--radius-sm); font-family: var(--font-body);
+      font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; border: none;
+    }
+    .btn-pri { background: var(--accent); color: #fff; }
+    .btn-pri:hover { background: oklch(38% 0.14 260); }
+    .btn-del {
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      padding: 4px 10px; font-size: 11px; border-radius: var(--radius-sm); cursor: pointer;
+    }
+    .btn-del:hover { border-color: var(--red); color: var(--red); }
+    .btn-out {
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      padding: 5px 12px; font-size: 12px; font-weight: 500; border-radius: var(--radius-sm); cursor: pointer;
+    }
+    .btn-out:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-xs { padding: 2px 8px; font-size: 10px; }
+
+    .spacer { flex: 1; }
+    .text-muted { color: var(--muted); font-size: 12px; }
+    .loading-row {
+      display: flex; align-items: center; gap: 8px; padding: 12px 0;
+      color: var(--muted); font-size: 13px;
+    }
+
+    .user-row {
+      display: flex; align-items: center; gap: 10px; padding: 8px 0;
+      border-bottom: 1px solid var(--border); flex-wrap: wrap;
+    }
+    .user-row:last-child { border-bottom: none; }
+    .user-row .u-email { font-weight: 600; font-size: 14px; }
+    .user-row .u-meta { font-size: 12px; color: var(--muted); }
+
+    .series-row {
+      display: flex; align-items: center; gap: 10px; padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .series-row:last-child { border-bottom: none; }
+    .series-row .s-name { font-weight: 600; font-size: 14px; flex: 1; }
+    .series-row .s-meta { font-size: 11px; color: var(--muted); }
+
+    .tag {
+      display: inline-block; padding: 2px 8px; border-radius: 10px;
+      font-size: 11px; font-weight: 600;
+    }
+    .tag-super { background: color-mix(in oklch, var(--accent), transparent 85%); color: var(--accent); }
+    .tag-admin { background: color-mix(in oklch, var(--green), transparent 85%); color: var(--green); }
+    .tag-user { background: var(--border); color: var(--muted); }
+
+    @media (max-width: 640px) {
+      .sa-page { padding: 14px 14px 80px; }
+      .sect { padding: 14px 16px; }
+      .frow { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header"></header>
+
+  <div class="sa-page">
+    <h2>Super Admin</h2>
+    <p class="subtitle">Gebruikersbeheer & reeks-toegang</p>
+
+    <!-- ═══ Gebruikersbeheer ═══ -->
+    <div class="sect">
+      <h3>Gebruikers</h3>
+      <p class="hint">Beheer alle gebruikers, rollen en accounts.</p>
+
+      <div class="frow" style="margin-bottom:16px">
+        <div class="fld"><label for="ua-email">E-mail</label><input id="ua-email" class="input" placeholder="zeiler@club.nl"></div>
+        <div class="fld"><label for="ua-pass">Wachtwoord</label><input id="ua-pass" class="input" type="password" placeholder="min. 6 tekens"></div>
+        <div class="fld" style="max-width:140px"><label for="ua-role">Rol</label><select id="ua-role"><option value="zeiler">Zeiler</option><option value="beheerder">Beheerder</option><option value="super_admin">Super Admin</option></select></div>
+        <div class="fld"><label for="ua-boat">Boot</label><input id="ua-boat" class="input" placeholder="Optioneel"></div>
+        <button class="btn btn-pri" onclick="createUser()" style="height:36px">Aanmaken</button>
+      </div>
+
+      <div id="user-list"><div class="loading-row"><div class="spinner"></div>Laden...</div></div>
+    </div>
+
+    <!-- ═══ Reeks-toegang ═══ -->
+    <div class="sect">
+      <h3>Reeks-toegang</h3>
+      <p class="hint">Geef beheerders toegang tot elkaars reeksen.</p>
+      <div id="series-list"><div class="loading-row"><div class="spinner"></div>Laden...</div></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    requireAuth();
+    checkAdmin().then(() => {
+      if (!isSuperAdmin) { window.location.href = 'dashboard.html'; return; }
+      renderHeader('super-admin');
+      loadUsers();
+      loadSeries();
+    });
+
+    // ── Users ────────────────────────────────────────────────────────────
+    async function loadUsers() {
+      try {
+        const users = await apiGet('/admin/users') || [];
+        const ctr = document.getElementById('user-list');
+        ctr.innerHTML = users.map(u => {
+          const tag = u.role === 'Super Admin'
+            ? '<span class="tag tag-super">Super Admin</span>'
+            : u.role === 'Beheerder'
+            ? '<span class="tag tag-admin">Beheerder</span>'
+            : '<span class="tag tag-user">Zeiler</span>';
+          return `
+            <div class="user-row">
+              <div style="flex:1;min-width:180px">
+                <div class="u-email">${escHtml(u.email)} ${tag}</div>
+                <div class="u-meta">${u.boatName ? escHtml(u.boatName) + ' · ' : ''}${u.trackCount} tracks · sinds ${fmtDate(u.createdAt)}</div>
+              </div>
+              <select onchange="changeRole(${u.id}, this.value)" style="padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--fg);max-width:130px">
+                <option value="zeiler" ${u.role === 'Zeiler' ? 'selected' : ''}>Zeiler</option>
+                <option value="beheerder" ${u.role === 'Beheerder' ? 'selected' : ''}>Beheerder</option>
+                <option value="super_admin" ${u.role === 'Super Admin' ? 'selected' : ''}>Super Admin</option>
+              </select>
+              <button class="btn-del" onclick="deleteUser(${u.id}, '${escHtml(u.email).replace(/'/g, "\\'")}')">Verwijderen</button>
+            </div>
+          `;
+        }).join('') || '<p class="text-muted">Geen gebruikers.</p>';
+      } catch (e) { document.getElementById('user-list').innerHTML = '<p class="text-muted">Fout: ' + escHtml(e.message) + '</p>'; }
+    }
+
+    async function createUser() {
+      const email = document.getElementById('ua-email').value.trim();
+      const password = document.getElementById('ua-pass').value;
+      const role = document.getElementById('ua-role').value;
+      const boat_name = document.getElementById('ua-boat').value.trim() || undefined;
+      if (!email || !password) return alert('E-mail en wachtwoord zijn verplicht.');
+      try {
+        await apiPost('/admin/users', { email, password, role, boat_name });
+        document.getElementById('ua-email').value = '';
+        document.getElementById('ua-pass').value = '';
+        document.getElementById('ua-boat').value = '';
+        await loadUsers();
+      } catch (e) { alert('Fout: ' + e.message); }
+    }
+
+    async function changeRole(userId, newRole) {
+      if (!confirm('Rol wijzigen naar "' + newRole + '"?')) { await loadUsers(); return; }
+      try {
+        await apiPut('/admin/users/' + userId + '/role', { role: newRole });
+        await loadUsers();
+      } catch (e) { alert('Fout: ' + e.message); await loadUsers(); }
+    }
+
+    async function deleteUser(userId, email) {
+      if (!confirm('Gebruiker "' + email + '" definitief verwijderen?')) return;
+      try {
+        await apiDelete('/admin/users/' + userId);
+        await loadUsers();
+      } catch (e) { alert('Fout: ' + e.message); }
+    }
+
+    // ── Series access ────────────────────────────────────────────────────
+    let allSeriesData = [];
+
+    async function loadSeries() {
+      try {
+        allSeriesData = await apiGet('/series') || [];
+        renderSeriesList();
+      } catch (e) {
+        document.getElementById('series-list').innerHTML = '<p class="text-muted">Fout bij laden series.</p>';
+      }
+    }
+
+    async function renderSeriesList() {
+      const ctr = document.getElementById('series-list');
+      if (!allSeriesData.length) {
+        ctr.innerHTML = '<p class="text-muted">Geen reeksen gevonden.</p>';
+        return;
+      }
+
+      let html = '';
+      for (const s of allSeriesData) {
+        let adminsHtml = '<div class="loading-row">Laden...</div>';
+        html += `
+          <div class="series-row" id="srow-${s.id}">
+            <div class="s-name">${escHtml(s.name)}</div>
+            <div class="s-meta">${s.season ? escHtml(s.season) + ' · ' : ''}${s.race_count || 0} wedstr.</div>
+            <div class="s-meta">door ${escHtml(s.created_by_email)}</div>
+            <button class="btn-out" onclick="toggleSeriesAdmins(${s.id})">Toegang</button>
+          </div>
+          <div id="sadmins-${s.id}" style="display:none;margin-left:20px;padding:6px 0 6px 12px;border-left:2px solid var(--border)"></div>
+        `;
+      }
+      ctr.innerHTML = html;
+    }
+
+    async function toggleSeriesAdmins(seriesId) {
+      const wrap = document.getElementById('sadmins-' + seriesId);
+      if (wrap.style.display !== 'none') { wrap.style.display = 'none'; return; }
+      wrap.style.display = 'block';
+      await loadSeriesAdmins(seriesId);
+    }
+
+    async function loadSeriesAdmins(seriesId) {
+      const wrap = document.getElementById('sadmins-' + seriesId);
+      try {
+        const admins = await apiGet('/admin/series/' + seriesId + '/admins') || [];
+        wrap.innerHTML = `
+          ${admins.map(a => `
+            <div class="cls-row">
+              <span class="cls-info">${escHtml(a.email)}</span>
+              <span class="cls-count">toegevoegd door ${escHtml(a.granted_by_email)}</span>
+              <button class="btn-del btn-xs" onclick="revokeAccess(${seriesId}, ${a.id})">Intrekken</button>
+            </div>
+          `).join('') || '<span class="text-muted">Geen extra beheerders.</span>'}
+          <div class="frow" style="margin-top:8px;margin-bottom:0">
+            <input id="sadmin-inp-${seriesId}" class="input" placeholder="Beheerder ID (getal)" style="flex:1;max-width:140px;padding:5px 10px;font-size:12px">
+            <button class="btn-out" onclick="grantAccess(${seriesId})">Toegang geven</button>
+          </div>
+        `;
+      } catch (e) { wrap.innerHTML = '<span class="text-muted">Fout bij laden.</span>'; }
+    }
+
+    async function grantAccess(seriesId) {
+      const inp = document.getElementById('sadmin-inp-' + seriesId);
+      const userId = parseInt(inp?.value);
+      if (!userId) return alert('Voer een geldig gebruikers-ID in.');
+      try {
+        await apiPost('/admin/series/' + seriesId + '/admins', { user_id: userId });
+        inp.value = '';
+        await loadSeriesAdmins(seriesId);
+      } catch (e) { alert('Fout: ' + e.message); }
+    }
+
+    async function revokeAccess(seriesId, userId) {
+      if (!confirm('Toegang intrekken?')) return;
+      try {
+        await apiDelete('/admin/series/' + seriesId + '/admins/' + userId);
+        await loadSeriesAdmins(seriesId);
+      } catch (e) { alert('Fout: ' + e.message); }
+    }
+  </script>
+</body>
+</html>
