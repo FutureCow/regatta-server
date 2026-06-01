@@ -38,4 +38,16 @@ function adminMiddleware(req, res, next) {
   next();
 }
 
-module.exports = { authMiddleware, adminMiddleware, SECRET };
+/**
+ * Must be used after authMiddleware. Rejects non-super-admin users.
+ * Looks up is_super_admin from the database via req.db (set in server.js).
+ */
+function superAdminMiddleware(req, res, next) {
+  const user = req.db.prepare('SELECT is_super_admin FROM users WHERE id = ?').get(req.userId);
+  if (!user || !user.is_super_admin) {
+    return res.status(403).json({ error: 'Alleen de super beheerder heeft toegang.' });
+  }
+  next();
+}
+
+module.exports = { authMiddleware, adminMiddleware, superAdminMiddleware, SECRET };

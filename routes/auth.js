@@ -61,10 +61,10 @@ function createAuthRouter(db) {
     const jwt = require('jsonwebtoken');
     try {
       const payload = jwt.verify(authHeader.slice(7), SECRET);
-      const user = db.prepare('SELECT id, email, is_admin, boat_type, boat_name, team_name FROM users WHERE id = ?').get(payload.sub);
+      const user = db.prepare('SELECT id, email, is_admin, is_super_admin, boat_type, boat_name, team_name FROM users WHERE id = ?').get(payload.sub);
       if (!user) return res.status(404).json({ error: 'Gebruiker niet gevonden.' });
       return res.json({
-        id: user.id, email: user.email, isAdmin: !!user.is_admin,
+        id: user.id, email: user.email, isAdmin: !!user.is_admin, isSuperAdmin: !!user.is_super_admin,
         boatType: user.boat_type, boatName: user.boat_name, teamName: user.team_name,
       });
     } catch {

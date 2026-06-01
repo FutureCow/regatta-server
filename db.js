@@ -89,6 +89,7 @@ function initDb(dbPath) {
   try { db.exec(`ALTER TABLE users ADD COLUMN boat_type TEXT`); } catch (_) {}
   try { db.exec(`ALTER TABLE users ADD COLUMN boat_name TEXT`); } catch (_) {}
   try { db.exec(`ALTER TABLE users ADD COLUMN team_name TEXT`); } catch (_) {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN is_super_admin INTEGER NOT NULL DEFAULT 0`); } catch (_) {}
 
   return db;
 }
