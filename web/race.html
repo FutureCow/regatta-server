@@ -532,7 +532,7 @@
               <div class="boat-color" style="background:${BOAT_COLORS[i % BOAT_COLORS.length]}"></div>
               <div class="boat-info">
                 <div class="boat-name">${escHtml(boatName)}</div>
-                <div class="boat-meta">${escHtml(subInfo || '')}${t.point_count ? (subInfo ? ' · ' : '') + t.point_count + ' punten' : ''}</div>
+                <div class="boat-meta">${escHtml(subInfo || '')}</div>
               </div>
               <div class="boat-stats">
                 <div class="boat-s"><div class="v">${t.avg_speed_knots != null ? t.avg_speed_knots.toFixed(1) : '—'} kn</div><div class="l">gem</div></div>
@@ -551,7 +551,7 @@
             <div class="boat-color" style="background:${BOAT_COLORS[i % BOAT_COLORS.length]}"></div>
             <div class="boat-info">
               <div class="boat-name">${escHtml(boatName)}</div>
-              <div class="boat-meta">${escHtml(subInfo || '')}${t.point_count ? (subInfo ? ' · ' : '') + t.point_count + ' punten' : ''}</div>
+              <div class="boat-meta">${escHtml(subInfo || '')}</div>
             </div>
             <div class="boat-stats">
               <div class="boat-s"><div class="v">${t.avg_speed_knots != null ? t.avg_speed_knots.toFixed(1) : '—'} kn</div><div class="l">gem</div></div>
