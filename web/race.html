@@ -553,6 +553,34 @@
             document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             playbackSpeed = parseFloat(btn.dataset.speed);
+            // Restart interval if currently playing so new speed takes effect
+            if (playbackTimer) {
+              clearInterval(playbackTimer);
+              const slider = document.getElementById('playback-slider');
+              playbackTimer = setInterval(() => {
+                playbackIdx++;
+                if (playbackIdx > parseInt(slider.max || 100)) {
+                  clearInterval(playbackTimer);
+                  playbackTimer = null;
+                  document.getElementById('play-btn').textContent = '\u25b6';
+                  playbackIdx = 0;
+                  slider.value = 0;
+                  document.querySelectorAll('.boat-item').forEach((el, i) => {
+                    if (i < tracks.length) {
+                      const t = tracks[i];
+                      const statsEl = el.querySelector('.boat-stats');
+                      if (statsEl) {
+                        statsEl.innerHTML = `<div class="boat-s"><div class="v">${t.avg_speed_knots != null ? t.avg_speed_knots.toFixed(1) : '\u2014'} kn</div><div class="l">gem</div></div>
+                          <div class="boat-s"><div class="v">${t.max_speed_knots != null ? t.max_speed_knots.toFixed(1) : '\u2014'} kn</div><div class="l">max</div></div>`;
+                      }
+                    }
+                  });
+                  return;
+                }
+                slider.value = playbackIdx;
+                updatePlaybackPosition();
+              }, 100 / playbackSpeed);
+            }
           });
         });
 
