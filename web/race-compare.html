@@ -324,7 +324,6 @@
 
         document.getElementById('breadcrumb-race-link').href = 'race.html';
         await fetchCompareData();
-        initMap();
         renderCompare();
       } catch (e) {
         console.error('loadCompare failed:', e.message || e);
