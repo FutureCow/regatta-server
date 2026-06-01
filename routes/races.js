@@ -4,7 +4,19 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const { XMLParser } = require('fast-xml-parser');
 const { authMiddleware, adminMiddleware, seriesAccessMiddleware, raceAccessMiddleware } = require('../middleware/auth');
+
+// ── Haversine afstand in meters ────────────────────────────────────────────
+function haversineM(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 function createRacesRouter(db, tracksDir) {
   const router = express.Router();
@@ -159,6 +171,111 @@ function createRacesRouter(db, tracksDir) {
     res.setHeader('Content-Type', 'application/gpx+xml');
     res.setHeader('Content-Disposition', `attachment; filename="${link.filename}"`);
     fs.createReadStream(filePath).pipe(res);
+  });
+
+  // ── POST /:id/compare-data — parsed GPX punten voor playback/vergelijking ──
+  router.post('/:id/compare-data', (req, res) => {
+    const { track_ids } = req.body || {};
+    if (!Array.isArray(track_ids) || track_ids.length === 0 || track_ids.length > 4) {
+      return res.status(400).json({ error: 'track_ids moet een array zijn van 1–4 track IDs.' });
+    }
+
+    const parser = new XMLParser({
+      ignoreAttributes: false,
+      attributeNamePrefix: '',
+      textNodeName: '_text',
+      isArray: (name) => name === 'trkpt' || name === 'trkseg' || name === 'trk',
+    });
+
+    const results = [];
+
+    for (let i = 0; i < track_ids.length; i++) {
+      const trackId = track_ids[i];
+
+      // Verify track is linked to this race
+      const link = db.prepare(
+        `SELECT t.id, t.filename, t.name, rt.user_id
+         FROM race_tracks rt JOIN tracks t ON t.id = rt.track_id
+         WHERE rt.race_id = ? AND rt.track_id = ?`
+      ).get(req.params.id, trackId);
+
+      if (!link) {
+        return res.status(404).json({ error: `Track ${trackId} niet gevonden in deze wedstrijd.` });
+      }
+
+      const filePath = path.join(tracksDir, String(link.user_id), link.filename);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: `GPX-bestand voor track ${trackId} niet gevonden.` });
+      }
+
+      try {
+        const xml = fs.readFileSync(filePath, 'utf8');
+        const gpx = parser.parse(xml);
+
+        // Navigate XML: gpx.trk[0].trkseg[0].trkpt[]
+        const trk = gpx.gpx?.trk;
+        if (!trk) continue;
+
+        const segments = Array.isArray(trk) ? trk.flatMap(t => t.trkseg || []) : (trk.trkseg || []);
+        const rawPoints = [];
+        for (const seg of segments) {
+          if (seg.trkpt) rawPoints.push(...seg.trkpt);
+        }
+
+        if (rawPoints.length < 2) continue;
+
+        const points = [];
+        let totalDist = 0;
+        let maxSpd = 0;
+        let sumSpd = 0;
+        let speedCount = 0;
+
+        for (let j = 0; j < rawPoints.length; j++) {
+          const pt = rawPoints[j];
+          const lat = parseFloat(pt.lat);
+          const lon = parseFloat(pt.lon);
+          const time = pt.time?._text || pt.time || null;
+          const ele = pt.ele?._text != null ? parseFloat(pt.ele._text) : (pt.ele != null ? parseFloat(pt.ele) : null);
+
+          const entry = { lat, lon };
+          if (time) entry.time = time;
+          if (ele != null) entry.ele = ele;
+
+          // Bereken snelheid naar vorige punt
+          if (j > 0 && time && points[j - 1].time) {
+            const dist = haversineM(points[j - 1].lat, points[j - 1].lng, lat, lon);
+            const dt = (new Date(time) - new Date(points[j - 1].time)) / 1000;
+            if (dt > 0) {
+              const speedKn = (dist / 1852) / (dt / 3600);
+              entry.speed_kn = Math.round(speedKn * 10) / 10;
+              totalDist += dist;
+              if (speedKn > maxSpd) maxSpd = speedKn;
+              sumSpd += speedKn;
+              speedCount++;
+            }
+          }
+
+          points.push(entry);
+        }
+
+        results.push({
+          id: trackId,
+          label: link.name || link.filename,
+          color_index: i,
+          points,
+          start_time: points[0].time || null,
+          end_time: points[points.length - 1].time || null,
+          point_count: points.length,
+          distance_m: Math.round(totalDist),
+          max_speed_kn: Math.round(maxSpd * 10) / 10,
+          avg_speed_kn: speedCount > 0 ? Math.round((sumSpd / speedCount) * 10) / 10 : 0,
+        });
+      } catch (e) {
+        return res.status(500).json({ error: `Fout bij parsen van track ${trackId}: ${e.message}` });
+      }
+    }
+
+    return res.json(results);
   });
 
   return router;

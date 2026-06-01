@@ -13,52 +13,25 @@
       padding: 20px 24px 80px;
       width: 100%;
     }
-
     .compare-page .breadcrumb {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--muted); margin-bottom: 16px;
     }
     .compare-page .breadcrumb a { color: var(--muted); }
     .compare-page .breadcrumb a:hover { color: var(--fg); }
-
     .compare-page h2 {
-      font-family: var(--font-display);
-      font-size: 26px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      margin-bottom: 4px;
+      font-family: var(--font-display); font-size: 26px; font-weight: 700;
+      letter-spacing: -0.02em; margin-bottom: 4px;
     }
-
-    .compare-page .subtitle {
-      color: var(--muted);
-      font-size: 14px;
-      margin-bottom: 24px;
-    }
+    .compare-page .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
 
     /* ── Track selector ── */
-    .track-selector {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 24px;
-    }
-
+    .track-selector { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
     .track-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 14px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      cursor: pointer;
-      font-size: 13px;
-      transition: all 0.15s;
-      user-select: none;
+      display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 999px; cursor: pointer; font-size: 13px;
+      transition: all 0.15s; user-select: none;
       box-shadow: 0 1px 4px rgba(0,10,30,0.04);
     }
     .track-chip:hover { border-color: var(--muted); }
@@ -66,204 +39,120 @@
       border-color: var(--accent);
       background: color-mix(in oklch, var(--accent-light), var(--surface) 70%);
     }
+    .track-chip .chip-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
-    .track-chip .chip-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      flex-shrink: 0;
+    /* ── Playback bar ── */
+    .playback-bar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--radius-md);
+      margin-bottom: 16px; flex-wrap: wrap;
+      box-shadow: 0 2px 12px rgba(0,10,30,0.04);
+    }
+    .playback-bar .btn-play {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: none; background: var(--accent); color: #fff;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: background 0.15s;
+    }
+    .playback-bar .btn-play:hover { background: var(--accent-dark, var(--accent)); }
+    .playback-bar .btn-play svg { width: 16px; height: 16px; }
+    .playback-bar .time-display {
+      font-family: var(--font-mono); font-size: 14px; font-weight: 600;
+      font-variant-numeric: tabular-nums; min-width: 70px; text-align: center;
+    }
+    .playback-bar input[type="range"] { flex: 1; min-width: 120px; }
+    .playback-bar .speed-group { display: flex; gap: 4px; align-items: center; }
+    .playback-bar .speed-label { font-size: 11px; color: var(--muted); }
+    .playback-bar .speed-btn {
+      padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px;
+      background: var(--surface); cursor: pointer; font-size: 12px;
+      font-family: var(--font-mono); transition: all 0.15s;
+    }
+    .playback-bar .speed-btn.active {
+      background: var(--accent); color: #fff; border-color: var(--accent);
     }
 
     /* ── Comparison layout ── */
-    .compare-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
     .compare-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      overflow: hidden;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-md); overflow: hidden;
       box-shadow: 0 2px 12px rgba(0,10,30,0.04);
     }
-
     .compare-card .compare-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 14px 16px;
+      display: flex; align-items: center; gap: 10px; padding: 14px 16px;
       border-bottom: 1px solid var(--border);
     }
-
-    .compare-card .compare-header .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .compare-card .compare-header .name {
-      font-weight: 600;
-      font-size: 14px;
-    }
-
+    .compare-card .compare-header .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .compare-card .compare-header .name { font-weight: 600; font-size: 14px; }
     .compare-card .compare-body { padding: 16px; }
-
     .compare-stat-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      padding: 8px 0;
-      border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
     }
     .compare-stat-row:last-child { border-bottom: none; }
-
-    .compare-stat-row .label {
-      font-size: 12px;
-      color: var(--muted);
-    }
+    .compare-stat-row .label { font-size: 12px; color: var(--muted); }
     .compare-stat-row .value {
-      font-family: var(--font-mono);
-      font-size: 16px;
-      font-weight: 600;
+      font-family: var(--font-mono); font-size: 16px; font-weight: 600;
       font-variant-numeric: tabular-nums;
     }
-    .compare-stat-row .value.better { color: var(--green); }
-    .compare-stat-row .value.worse { color: var(--muted); }
 
-    /* ── Combined map ── */
+    /* ── Map ── */
     .map-section {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      overflow: hidden;
-      margin-bottom: 24px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-md); overflow: hidden; margin-bottom: 24px;
       box-shadow: 0 2px 12px rgba(0,10,30,0.04);
     }
-
     .map-section .map-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; border-bottom: 1px solid var(--border);
+    }
+    .map-section .map-header h4 { font-size: 13px; font-weight: 600; }
+    .map-legend { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+    .map-legend .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+    .map-legend .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+    #compare-map { width: 100%; height: 450px; background: var(--bg); }
+
+    /* ── Boat marker pulse ── */
+    .boat-marker {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
 
-    .map-section .map-header h4 {
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .map-section .map-legend {
-      display: flex;
-      gap: 14px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .map-legend .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 11px;
-      color: var(--muted);
-    }
-
-    .map-legend .legend-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-
-    #compare-map {
-      width: 100%;
-      height: 450px;
-      background: var(--bg);
-    }
-
-    /* ── Speed overlay chart ── */
+    /* ── Speed chart ── */
     .chart-section {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 20px;
-      margin-bottom: 24px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 20px; margin-bottom: 24px;
       box-shadow: 0 2px 12px rgba(0,10,30,0.04);
     }
-
     .chart-section .chart-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 14px;
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
     }
+    .chart-section .chart-header h4 { font-size: 13px; font-weight: 600; }
+    #compare-chart { width: 100%; height: 260px; display: block; border-radius: var(--radius-sm); }
 
-    .chart-section .chart-header h4 {
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    #compare-chart {
-      width: 100%;
-      height: 240px;
-      display: block;
-      border-radius: var(--radius-sm);
-    }
-
-    .loading-state {
-      text-align: center;
-      padding: 80px 20px;
-      color: var(--muted);
-    }
+    .loading-state { text-align: center; padding: 80px 20px; color: var(--muted); }
     .loading-state .spinner {
-      display: inline-block;
-      width: 28px;
-      height: 28px;
-      border: 3px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      margin-bottom: 12px;
+      display: inline-block; width: 28px; height: 28px;
+      border: 3px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.7s linear infinite; margin-bottom: 12px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-state p { font-size: 14px; }
 
-    /* ── Mobile bottom nav ── */
+    /* ── Mobile ── */
     .mobile-nav {
-      display: none;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: var(--surface);
-      border-top: 1px solid var(--border);
-      z-index: 200;
+      display: none; position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--surface); border-top: 1px solid var(--border); z-index: 200;
       padding: 6px 0 env(safe-area-inset-bottom, 6px) 0;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     }
-
-    .mobile-nav-inner {
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-    }
-
+    .mobile-nav-inner { display: flex; justify-content: space-around; align-items: center; }
     .mobile-nav a {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-      padding: 8px 12px;
-      font-size: 10px;
-      color: var(--muted);
-      text-decoration: none;
-      border-radius: var(--radius-sm);
-      transition: color 0.15s;
-      min-width: 56px;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      padding: 8px 12px; font-size: 10px; color: var(--muted);
+      text-decoration: none; border-radius: var(--radius-sm); transition: color 0.15s; min-width: 56px;
     }
     .mobile-nav a.active { color: var(--accent); }
     .mobile-nav a svg { width: 22px; height: 22px; }
@@ -275,21 +164,34 @@
       .mobile-nav { display: block; }
       .app-header .nav { display: none; }
     }
+
+    /* ── Range input styling ── */
+    input[type="range"] {
+      -webkit-appearance: none; appearance: none; height: 6px;
+      background: var(--border); border-radius: 3px; outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px;
+      background: var(--accent); border-radius: 50%; cursor: pointer;
+      border: 2px solid var(--surface); box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 18px; height: 18px; background: var(--accent);
+      border-radius: 50%; cursor: pointer; border: 2px solid var(--surface);
+    }
   </style>
 </head>
 <body>
   <header class="app-header"></header>
   <div class="compare-page">
     <div class="breadcrumb">
-      <a href="dashboard.html">Wedstrijden</a>
-      <span>·</span>
-      <a href="race.html" id="breadcrumb-race-link">Race</a>
-      <span>·</span>
+      <a href="dashboard.html">Wedstrijden</a> <span>·</span>
+      <a href="race.html" id="breadcrumb-race-link">Race</a> <span>·</span>
       <span>Vergelijken</span>
     </div>
 
     <h2>Boten vergelijken</h2>
-    <p class="subtitle">Selecteer twee of meer boten om hun prestaties naast elkaar te zien</p>
+    <p class="subtitle">Selecteer boten, druk op play en zie ze over de kaart varen</p>
 
     <div id="compare-content">
       <div class="loading-state">
@@ -325,10 +227,26 @@
 
     const raceId = sessionStorage.getItem('raceId');
     const BOAT_COLORS = ['#1d4ed8', '#059669', '#d97706', '#dc2626', '#7c3aed', '#db2777', '#0891b2', '#65a30d'];
+
+    // ── State ──
     let map;
+    let tracks = [];            // raw /tracks response
+    let compareData = [];       // /compare-data response (GPX parsed)
     let selectedBoatIdx = [0, 1];
     let renderedLines = [];
-    let tracks = [];
+    let boatMarkers = [];       // Leaflet circle markers
+
+    // Playback state
+    let playing = false;
+    let currentTime = 0;        // seconds from totalTimelineStart
+    let totalDuration = 0;      // total timeline duration across all tracks
+    let playSpeed = 1;
+    let animFrameId = null;
+    let lastFrameTs = null;
+
+    /* ────────────────────────────────────────────────────────────────
+       LOADING
+       ──────────────────────────────────────────────────────────────── */
 
     async function loadCompare() {
       if (!raceId) {
@@ -351,16 +269,46 @@
         }
 
         selectedBoatIdx = [0, Math.min(1, tracks.length - 1)];
-        renderCompare();
-        initMap();
-        drawAllTracks();
-        drawCompareChart();
+
         document.getElementById('breadcrumb-race-link').href = 'race.html';
+        await fetchCompareData();
+        initMap();
+        renderCompare();
       } catch (e) {
         document.getElementById('compare-content').innerHTML =
           '<div class="loading-state"><p>Kon gegevens niet laden. <a href="dashboard.html">Ga terug</a>.</p></div>';
       }
     }
+
+    async function fetchCompareData() {
+      const ids = selectedBoatIdx.map(i => tracks[i].id);
+      try {
+        compareData = await apiPost('/races/' + raceId + '/compare-data', { track_ids: ids });
+      } catch (_) {
+        compareData = [];
+      }
+
+      // Compute total timeline
+      let minT = Infinity, maxT = -Infinity;
+      for (const cd of compareData) {
+        if (cd.points.length > 0) {
+          const t0 = new Date(cd.points[0].time).getTime();
+          const t1 = new Date(cd.points[cd.points.length - 1].time).getTime();
+          if (t0 < minT) minT = t0;
+          if (t1 > maxT) maxT = t1;
+        }
+      }
+      totalDuration = (maxT - minT) / 1000;
+      if (totalDuration <= 0) totalDuration = 60;
+
+      // Reset playback
+      stopPlayback();
+      currentTime = 0;
+    }
+
+    /* ────────────────────────────────────────────────────────────────
+       RENDER UI
+       ──────────────────────────────────────────────────────────────── */
 
     function renderCompare() {
       const content = document.getElementById('compare-content');
@@ -371,10 +319,26 @@
             return `
               <div class="track-chip ${selected ? 'selected' : ''}" data-idx="${i}" onclick="toggleBoat(${i})">
                 <span class="chip-dot" style="background:${BOAT_COLORS[i % BOAT_COLORS.length]}"></span>
-                ${escHtml(t.label || t.filename || 'Boot ' + (i+1))}
+                ${escHtml(t.name || t.filename || 'Boot ' + (i+1))}
               </div>
             `;
           }).join('')}
+        </div>
+
+        <div class="playback-bar">
+          <button class="btn-play" id="btn-play" onclick="togglePlay()">
+            <svg id="icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            <svg id="icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          </button>
+          <span class="time-display" id="time-display">00:00</span>
+          <input type="range" id="timeline" min="0" max="1000" value="0" oninput="seekTimeline(this.value)" />
+          <span class="time-display" id="time-total">${fmtDuration(totalDuration)}</span>
+          <div class="speed-group">
+            <span class="speed-label">Snelheid</span>
+            ${[1, 2, 4, 8].map(s => `
+              <button class="speed-btn ${s === playSpeed ? 'active' : ''}" onclick="setSpeed(${s})">${s}&times;</button>
+            `).join('')}
+          </div>
         </div>
 
         <div class="map-section">
@@ -388,53 +352,61 @@
         <div class="compare-grid" id="compare-cards"></div>
 
         <div class="chart-section">
-          <div class="chart-header">
-            <h4>Snelheidsvergelijking (knopen)</h4>
-          </div>
+          <div class="chart-header"><h4>Snelheidsvergelijking (knopen)</h4></div>
           <canvas id="compare-chart"></canvas>
         </div>
       `;
 
       renderCompareCards();
       updateLegend();
+      drawAllTracks();
+      drawCompareChart();
+      updateTimelineUI();
+
+      document.getElementById('time-total').textContent = fmtDuration(totalDuration);
+
+      // Re-init map if needed (Leaflet needs the container visible)
+      if (!map || map._container !== document.getElementById('compare-map')) {
+        initMap();
+        drawAllTracks();
+        updateBoatMarkers();
+      }
     }
 
     function renderCompareCards() {
       const container = document.getElementById('compare-cards');
+      if (!container) return;
+
       container.innerHTML = selectedBoatIdx.map(idx => {
-        const t = tracks[idx];
-        const speedData = generateSpeedData(120, idx);
-        const maxK = Math.max(...speedData);
-        const avgK = speedData.reduce((a, b) => a + b, 0) / speedData.length;
-        const allOthers = selectedBoatIdx.filter(i => i !== idx).flatMap(i => generateSpeedData(120, i));
-        const maxFromOther = allOthers.length ? Math.max(...allOthers) : 0;
+        const cd = compareData.find(d => d.id === tracks[idx]?.id);
+        const avgKn = cd ? cd.avg_speed_kn : parseFloat(tracks[idx]?.avg_speed_knots) || 0;
+        const maxKn = cd ? cd.max_speed_kn : parseFloat(tracks[idx]?.max_speed_knots) || 0;
+        const distM = cd ? cd.distance_m : parseFloat(tracks[idx]?.distance_meters) || 0;
+        const distNm = (distM / 1852).toFixed(2);
+        const pointCnt = cd ? cd.point_count : tracks[idx]?.point_count || 0;
 
         return `
           <div class="compare-card">
             <div class="compare-header">
               <span class="dot" style="background:${BOAT_COLORS[idx % BOAT_COLORS.length]}"></span>
-              <span class="name">${escHtml(t.label || t.filename || 'Boot ' + (idx+1))}</span>
+              <span class="name">${escHtml(tracks[idx]?.name || tracks[idx]?.filename || 'Boot ' + (idx+1))}</span>
             </div>
             <div class="compare-body">
               <div class="compare-stat-row">
                 <span class="label">Gemiddelde snelheid</span>
-                <span class="value ${avgK >= 4.5 ? 'better' : ''}">${avgK.toFixed(1)} kn</span>
+                <span class="value">${avgKn.toFixed(1)} kn</span>
               </div>
               <div class="compare-stat-row">
                 <span class="label">Maximale snelheid</span>
-                <span class="value ${maxK >= 6 ? 'better' : ''}">${maxK.toFixed(1)} kn</span>
-              </div>
-              <div class="compare-stat-row">
-                <span class="label">Topsnelheid vs anderen</span>
-                <span class="value ${maxK >= maxFromOther ? 'better' : ''}">${maxK.toFixed(1)} vs ${maxFromOther.toFixed(1)} kn</span>
+                <span class="value">${maxKn.toFixed(1)} kn</span>
               </div>
               <div class="compare-stat-row">
                 <span class="label">Afgelegde afstand</span>
-                <span class="value">${(Math.random() * 3 + 2).toFixed(2)} nm</span>
+                <span class="value">${distNm} nm</span>
               </div>
               <div class="compare-stat-row">
-                <span class="label">Tracksnelheid (sampling)</span>
-                <span class="value">${speedData.length} punten</span>
+                <span class="label">Trackpunten</span>
+                <span class="value">${pointCnt}</span>
               </div>
             </div>
           </div>
@@ -444,85 +416,55 @@
 
     function updateLegend() {
       const legend = document.getElementById('map-legend');
+      if (!legend) return;
       legend.innerHTML = selectedBoatIdx.map(i => {
         const t = tracks[i];
         return `
           <div class="legend-item">
             <span class="legend-dot" style="background:${BOAT_COLORS[i % BOAT_COLORS.length]}"></span>
-            ${escHtml(t.label || t.filename || 'Boot ' + (i+1))}
+            ${escHtml(t.name || t.filename || 'Boot ' + (i+1))}
           </div>
         `;
       }).join('');
     }
 
-    function toggleBoat(idx) {
-      const el = document.querySelector(`.track-chip[data-idx="${idx}"]`);
-      if (!el) return;
-
-      if (selectedBoatIdx.includes(idx)) {
-        if (selectedBoatIdx.length <= 2) return;
-        selectedBoatIdx = selectedBoatIdx.filter(i => i !== idx);
-      } else {
-        if (selectedBoatIdx.length >= 4) return;
-        selectedBoatIdx.push(idx);
-      }
-
-      document.querySelectorAll('.track-chip').forEach(chip => {
-        const i = parseInt(chip.dataset.idx);
-        chip.classList.toggle('selected', selectedBoatIdx.includes(i));
-      });
-
-      drawAllTracks();
-      renderCompareCards();
-      updateLegend();
-      drawCompareChart();
-    }
+    /* ────────────────────────────────────────────────────────────────
+       MAP
+       ──────────────────────────────────────────────────────────────── */
 
     function initMap() {
-      map = L.map('compare-map', {
-        zoomControl: true,
-        attributionControl: false,
-      }).setView([52.0, 4.5], 12);
+      const el = document.getElementById('compare-map');
+      if (map) { map.remove(); map = null; }
+
+      map = L.map(el, { zoomControl: true, attributionControl: false }).setView([52.0, 4.5], 12);
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         maxZoom: 18,
       }).addTo(map);
+
+      // Force map to recalculate size
+      setTimeout(() => map.invalidateSize(), 100);
     }
 
-    function generateSailingTrack(center, seed) {
-      const pts = 100 + Math.floor(Math.random() * 40);
-      const coords = [];
-      const lat0 = center[0] + (seed * 0.003);
-      const lng0 = center[1] + (seed * 0.002);
-      for (let i = 0; i < pts; i++) {
-        const t = i / pts;
-        const angle = t * Math.PI * 2 + 0.3 + seed * 0.5;
-        const radius = 0.012 + t * 0.022;
-        const lat = lat0 + Math.sin(angle) * radius + (t * 0.01);
-        const lng = lng0 + Math.cos(angle * 0.6 + seed * 0.3) * radius * 0.5 + (t * 0.004);
-        coords.push([lat, lng]);
+    function getTrackCoords(cd, idx) {
+      if (cd && cd.points && cd.points.length >= 2) {
+        return cd.points.map(p => [p.lat, p.lon]);
       }
-      return coords;
-    }
-
-    function getTrackCoords(track, idx) {
-      if (track.points && Array.isArray(track.points)) {
-        return track.points.map(p => [p.latitude || p.lat, p.longitude || p.lng || p.lon]);
-      }
-      if (track.coordinates && Array.isArray(track.coordinates)) {
-        return track.coordinates.map(c => [c.lat || c[1], c.lng || c.lon || c[0]]);
-      }
-      return generateSailingTrack([52.0, 4.5], idx);
+      // Fallback: no real GPX data
+      return [];
     }
 
     function drawAllTracks() {
+      if (!map) return;
       renderedLines.forEach(l => map.removeLayer(l));
       renderedLines = [];
+      clearBoatMarkers();
 
       const allBounds = [];
 
       selectedBoatIdx.forEach(idx => {
-        const coords = getTrackCoords(tracks[idx], idx);
+        const cd = compareData.find(d => d.id === tracks[idx]?.id);
+        const coords = getTrackCoords(cd, idx);
         if (coords.length < 2) return;
 
         const line = L.polyline(coords, {
@@ -538,17 +480,177 @@
       if (allBounds.length > 0) {
         map.fitBounds(L.latLngBounds(allBounds).pad(0.1));
       }
+
+      // Place initial boat markers
+      updateBoatMarkers();
     }
 
-    function generateSpeedData(count, seed) {
-      const speeds = [];
-      for (let i = 0; i < count; i++) {
-        const base = 3.5 + seed * 0.8 + Math.sin(i / 18 + seed * 0.3) * 1.5 + Math.random() * 0.6;
-        const gust = Math.sin(i / 4 + seed) > 0.75 ? 2 + seed * 0.5 : 0;
-        speeds.push(Math.round((base + gust) * 10) / 10);
-      }
-      return speeds;
+    /* ────────────────────────────────────────────────────────────────
+       BOAT MARKERS (playback)
+       ──────────────────────────────────────────────────────────────── */
+
+    function clearBoatMarkers() {
+      boatMarkers.forEach(m => map.removeLayer(m));
+      boatMarkers = [];
     }
+
+    function updateBoatMarkers() {
+      if (!map) return;
+      clearBoatMarkers();
+
+      selectedBoatIdx.forEach(idx => {
+        const cd = compareData.find(d => d.id === tracks[idx]?.id);
+        if (!cd || cd.points.length < 2) return;
+
+        const pos = interpolatePosition(cd, currentTime);
+        if (!pos) return;
+
+        const color = BOAT_COLORS[idx % BOAT_COLORS.length];
+        const marker = L.circleMarker([pos.lat, pos.lng], {
+          radius: 10,
+          fillColor: color,
+          color: '#fff',
+          weight: 3,
+          fillOpacity: 0.9,
+        }).addTo(map);
+
+        // Richtingspijltje (richting volgende punt)
+        if (pos.heading != null) {
+          marker.bindTooltip('▶', {
+            direction: 'center',
+            className: 'boat-direction',
+            offset: [0, 0],
+            opacity: 1,
+            permanent: true,
+          });
+        }
+
+        boatMarkers.push(marker);
+      });
+    }
+
+    /**
+     * Interpoleer bootpositie op een gegeven tijd (in seconden vanaf de
+     * vroegste starttijd van alle tracks).
+     */
+    function interpolatePosition(cd, relTime) {
+      if (!cd.points || cd.points.length < 2) return null;
+
+      const startTs = new Date(cd.points[0].time).getTime();
+      const endTs = new Date(cd.points[cd.points.length - 1].time).getTime();
+      const trackDuration = (endTs - startTs) / 1000;
+
+      const targetTs = startTs + relTime * 1000;
+
+      // Before first point or after last point
+      if (relTime <= 0) {
+        return { lat: cd.points[0].lat, lng: cd.points[0].lon, heading: null };
+      }
+      if (relTime >= trackDuration) {
+        const last = cd.points[cd.points.length - 1];
+        return { lat: last.lat, lng: last.lon, heading: null };
+      }
+
+      // Find the two points the target time falls between
+      for (let i = 0; i < cd.points.length - 1; i++) {
+        const t0 = new Date(cd.points[i].time).getTime();
+        const t1 = new Date(cd.points[i + 1].time).getTime();
+
+        if (targetTs >= t0 && targetTs <= t1) {
+          const segDuration = t1 - t0;
+          const frac = segDuration > 0 ? (targetTs - t0) / segDuration : 0;
+
+          return {
+            lat: cd.points[i].lat + (cd.points[i + 1].lat - cd.points[i].lat) * frac,
+            lng: cd.points[i].lon + (cd.points[i + 1].lon - cd.points[i].lon) * frac,
+            heading: Math.atan2(
+              cd.points[i + 1].lat - cd.points[i].lat,
+              cd.points[i + 1].lon - cd.points[i].lon
+            ) * 180 / Math.PI,
+          };
+        }
+      }
+
+      return null;
+    }
+
+    /* ────────────────────────────────────────────────────────────────
+       PLAYBACK CONTROLS
+       ──────────────────────────────────────────────────────────────── */
+
+    function togglePlay() {
+      if (playing) { stopPlayback(); } else { startPlayback(); }
+    }
+
+    function startPlayback() {
+      if (currentTime >= totalDuration) {
+        currentTime = 0;
+        updateBoatMarkers();
+        drawCompareChart();
+      }
+      playing = true;
+      lastFrameTs = performance.now();
+      updatePlayButton();
+      animLoop(lastFrameTs);
+    }
+
+    function stopPlayback() {
+      playing = false;
+      if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+      updatePlayButton();
+    }
+
+    function animLoop(now) {
+      if (!playing) return;
+
+      const dt = (now - lastFrameTs) / 1000; // real-time seconds
+      lastFrameTs = now;
+
+      currentTime += dt * playSpeed;
+      if (currentTime >= totalDuration) {
+        currentTime = totalDuration;
+        stopPlayback();
+      }
+
+      updateBoatMarkers();
+      updateTimelineUI();
+      drawCompareChart(); // update cursor
+
+      animFrameId = requestAnimationFrame(animLoop);
+    }
+
+    function seekTimeline(val) {
+      currentTime = (val / 1000) * totalDuration;
+      if (currentTime >= totalDuration) currentTime = totalDuration;
+      updateBoatMarkers();
+      updateTimelineUI();
+      drawCompareChart();
+    }
+
+    function setSpeed(s) {
+      playSpeed = s;
+      document.querySelectorAll('.speed-btn').forEach(b => {
+        b.classList.toggle('active', parseInt(b.textContent) === s);
+      });
+    }
+
+    function updateTimelineUI() {
+      const slider = document.getElementById('timeline');
+      const display = document.getElementById('time-display');
+      if (slider) slider.value = totalDuration > 0 ? Math.round((currentTime / totalDuration) * 1000) : 0;
+      if (display) display.textContent = fmtDuration(currentTime);
+    }
+
+    function updatePlayButton() {
+      const play = document.getElementById('icon-play');
+      const pause = document.getElementById('icon-pause');
+      if (play) play.style.display = playing ? 'none' : '';
+      if (pause) pause.style.display = playing ? '' : 'none';
+    }
+
+    /* ────────────────────────────────────────────────────────────────
+       SPEED CHART
+       ──────────────────────────────────────────────────────────────── */
 
     function drawCompareChart() {
       const canvas = document.getElementById('compare-chart');
@@ -558,32 +660,54 @@
       const dpr = window.devicePixelRatio || 1;
       const rect = canvas.parentElement.getBoundingClientRect();
       const w = rect.width - 40;
-      const h = 240;
+      const h = 260;
       canvas.width = w * dpr;
       canvas.height = h * dpr;
       canvas.style.width = w + 'px';
       canvas.style.height = h + 'px';
       ctx.scale(dpr, dpr);
 
-      const padding = { top: 16, bottom: 28, left: 40, right: 16 };
+      const padding = { top: 16, bottom: 28, left: 44, right: 16 };
       const chartW = w - padding.left - padding.right;
       const chartH = h - padding.top - padding.bottom;
 
-      const allData = selectedBoatIdx.map((idx, i) => ({
-        idx,
-        data: generateSpeedData(120, i),
-        color: BOAT_COLORS[idx % BOAT_COLORS.length],
-        name: tracks[idx]?.label || tracks[idx]?.filename || 'Boot ' + (idx+1),
-      }));
+      // Build speed data from real GPX points
+      const allSeries = [];
+      let globalMaxSpeed = 2;
 
-      const maxSpeed = Math.max(...allData.flatMap(d => d.data), 2);
+      for (let si = 0; si < selectedBoatIdx.length; si++) {
+        const idx = selectedBoatIdx[si];
+        const cd = compareData.find(d => d.id === tracks[idx]?.id);
+        if (!cd || cd.points.length < 2) continue;
 
-      function xPos(i) { return padding.left + (i / (120 - 1)) * chartW; }
-      function yPos(v) { return padding.top + chartH - ((v) / maxSpeed) * chartH; }
+        // Map points to { timeOffset, speed_kn }
+        const startTs = new Date(cd.points[0].time).getTime();
+        const data = [];
+        for (const pt of cd.points) {
+          if (pt.speed_kn != null) {
+            const t = (new Date(pt.time).getTime() - startTs) / 1000;
+            data.push({ t, v: pt.speed_kn });
+          }
+        }
+        if (data.length < 2) continue;
+
+        allSeries.push({
+          data,
+          color: BOAT_COLORS[idx % BOAT_COLORS.length],
+          name: tracks[idx]?.name || tracks[idx]?.filename || 'Boot ' + (idx+1),
+        });
+
+        for (const d of data) { if (d.v > globalMaxSpeed) globalMaxSpeed = d.v; }
+      }
+
+      globalMaxSpeed = Math.max(globalMaxSpeed, 2);
+
+      function xPos(t) { return padding.left + (t / totalDuration) * chartW; }
+      function yPos(v) { return padding.top + chartH - (v / globalMaxSpeed) * chartH; }
 
       ctx.clearRect(0, 0, w, h);
 
-      // Light theme grid
+      // Grid
       ctx.strokeStyle = 'rgba(71, 85, 105, 0.2)';
       ctx.lineWidth = 1;
       for (let k = 0; k <= 4; k++) {
@@ -595,37 +719,72 @@
         ctx.fillStyle = 'rgba(71, 85, 105, 0.5)';
         ctx.font = '10px "JetBrains Mono", monospace';
         ctx.textAlign = 'right';
-        ctx.fillText((maxSpeed * (1 - k / 4)).toFixed(1) + ' kn', padding.left - 6, y + 3);
+        ctx.fillText((globalMaxSpeed * (1 - k / 4)).toFixed(1) + ' kn', padding.left - 6, y + 3);
       }
 
-      // Lines
-      allData.forEach(({ data, color, name }) => {
-        ctx.beginPath();
-        ctx.moveTo(xPos(0), yPos(data[0]));
-        for (let i = 1; i < data.length; i++) {
-          ctx.lineTo(xPos(i), yPos(data[i]));
-        }
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      });
-
-      // Time axis
+      // Time axis labels
       ctx.fillStyle = 'rgba(71, 85, 105, 0.5)';
       ctx.font = '10px "JetBrains Mono", monospace';
       ctx.textAlign = 'center';
-      for (let i = 0; i < 120; i += 20) {
-        const mins = Math.floor(i * 5 / 60);
-        const secs = (i * 5) % 60;
-        ctx.fillText(
-          String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0'),
-          xPos(i), h - 6
-        );
+      const labelCount = 6;
+      for (let i = 0; i <= labelCount; i++) {
+        const t = (i / labelCount) * totalDuration;
+        ctx.fillText(fmtDuration(t), xPos(t), h - 6);
       }
+
+      // Speed lines
+      for (const series of allSeries) {
+        ctx.beginPath();
+        ctx.moveTo(xPos(series.data[0].t), yPos(series.data[0].v));
+        for (let i = 1; i < series.data.length; i++) {
+          ctx.lineTo(xPos(series.data[i].t), yPos(series.data[i].v));
+        }
+        ctx.strokeStyle = series.color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      // Cursor line (vertical)
+      const cx = xPos(currentTime);
+      ctx.beginPath();
+      ctx.moveTo(cx, padding.top);
+      ctx.lineTo(cx, padding.top + chartH);
+      ctx.strokeStyle = 'rgba(71, 85, 105, 0.6)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
     }
 
+    /* ────────────────────────────────────────────────────────────────
+       BOAT TOGGLE
+       ──────────────────────────────────────────────────────────────── */
+
+    async function toggleBoat(idx) {
+      if (selectedBoatIdx.includes(idx)) {
+        if (selectedBoatIdx.length <= 2) return;
+        selectedBoatIdx = selectedBoatIdx.filter(i => i !== idx);
+      } else {
+        if (selectedBoatIdx.length >= 4) return;
+        selectedBoatIdx.push(idx);
+      }
+
+      stopPlayback();
+      currentTime = 0;
+
+      await fetchCompareData();
+      renderCompare();
+    }
+
+    /* ────────────────────────────────────────────────────────────────
+       INIT
+       ──────────────────────────────────────────────────────────────── */
+
     loadCompare();
-    window.addEventListener('resize', () => { if (tracks.length) drawCompareChart(); });
+    window.addEventListener('resize', () => {
+      if (map) map.invalidateSize();
+      if (compareData.length) drawCompareChart();
+    });
   </script>
 </body>
 </html>
