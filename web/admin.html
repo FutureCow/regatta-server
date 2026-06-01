@@ -208,7 +208,8 @@
         var wasOpen = Object.keys(expandedSeries).map(Number);
         renderSeries(allSeries);
         renderStandalone(allRaces.filter(function(r) { return !r.series_id; }));
-        // Heropen
+        // Heropen — reset expandedSeries want kaarten zijn nieuw
+        expandedSeries = {};
         for (var i = 0; i < wasOpen.length; i++) { toggleSeries(wasOpen[i]); }
       } catch (e) {
         console.error('loadAll failed:', e);
