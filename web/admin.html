@@ -169,13 +169,21 @@
         <div class="fld"><label for="sr-name">Naam</label><input id="sr-name" class="input" placeholder="Eenmalige wedstrijd"></div>
         <div class="fld"><label for="sr-date">Datum</label><input id="sr-date" type="date" class="date-inp"></div>
         <div class="fld"><label for="sr-desc">Omschrijving</label><input id="sr-desc" class="input" placeholder="Optioneel"></div>
-        <button class="btn btn-pri" onclick="addStandaloneRace()" style="height:36px">Toevoegen</button>
+        <button class="btn btn-pri" onclick="console.log('Toevoegen clicked');addStandaloneRace()" style="height:36px">Toevoegen</button>
       </div>
     </div>
   </div>
 
   <script src="script.js"></script>
   <script>
+    // ── Global error catcher ──
+    window.onerror = function(msg, url, line) {
+      console.error('JS ERROR:', msg, 'at', url, 'line', line);
+      document.getElementById('series-container').innerHTML =
+        '<div class="sect"><p style="color:var(--red)">JS-fout: ' + msg + ' (regel ' + line + ')</p></div>';
+    };
+
+    console.log('admin.js loaded');
     requireAuth();
     checkAdmin().then(() => {
       if (!isAdmin) { window.location.href = 'dashboard.html'; return; }
@@ -423,7 +431,7 @@
             <div class="fld"><input id="race-name-${id}" class="input" placeholder="Wedstrijd naam"></div>
             <div class="fld"><input id="race-date-${id}" type="date" class="date-inp"></div>
             <div class="fld"><input id="race-desc-${id}" class="input" placeholder="Omschrijving (optioneel)"></div>
-            <button class="btn btn-pri" onclick="addSeriesRace(${id})" style="height:33px">+ Wedstrijd</button>
+            <button class="btn btn-pri" onclick="console.log('+Wedstrijd clicked, seriesId='+${id});addSeriesRace(${id})" style="height:33px">+ Wedstrijd</button>
           </div>
         </div>
 
